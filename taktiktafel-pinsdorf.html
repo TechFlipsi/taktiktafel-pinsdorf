@@ -266,6 +266,7 @@ label.feldlabel{font-size:11px;color:var(--grau);display:block;margin:8px 0 4px}
       <button class="tbtn" id="m-loeschen" title="Zeichnung lösen">⌫ Löschen</button>
       <div class="sep"></div>
       <button class="tbtn" id="btn-flip" title="Angriffsrichtung drehen">⇄</button>
+      <button class="tbtn on" id="btn-gegner" title="Gegner ein-/ausblenden">👁 Gegner</button>
       <select id="formation" class="fauswahl">
         <option value="">Formation…</option>
         <option value="4-4-2">4-4-2</option>
@@ -638,6 +639,7 @@ function renderPins(){
     attachPin(el);
     pinsLayer.appendChild(el);
   });
+  if (typeof applyGegner === 'function') applyGegner();
 }
 function attachPin(el){
   function posFromTouch(t){
@@ -874,6 +876,20 @@ function setMode(m){
 $('m-move').onclick = function(){ setMode('move'); };
 $('m-arrow').onclick = function(){ setMode('arrow'); };
 $('m-zone').onclick = function(){ setMode('zone'); };
+/* Gegner ein-/ausblenden: pins behalten Positionen, nur Opazität am Layer umschalten */
+let gegnerOn = true;
+function applyGegner(){
+  const opp = pinsLayer.querySelectorAll('.pin.opp');
+  opp.forEach(function(el){ el.style.display = gegnerOn ? '' : 'none'; });
+  $('btn-gegner').classList.toggle('on', gegnerOn);
+}
+$('btn-gegner').onclick = function(){
+  gegnerOn = !gegnerOn;
+  applyGegner();
+  saveState();
+  toast(gegnerOn ? 'Gegner eingeblendet' : 'Gegner ausgeblendet');
+};
+applyGegner();
 $('m-loeschen').onclick = function(){
   if (!shapes.length){ toast('Keine Zeichnung vorhanden'); return; }
   shapes.pop();
@@ -1129,7 +1145,7 @@ $('ml-cancel').onclick = function(){ $('modal-load').classList.remove('on'); };
 
 /* ---------- Persistenz Taktik ---------- */
 function saveState(){
-  store('ask_taktik', { pins: pins, shapes: shapes, desc: descNote, form: formationLabel, sub: $('header-sub').textContent });
+  store('ask_taktik', { pins: pins, shapes: shapes, desc: descNote, form: formationLabel, sub: $('header-sub').textContent, gegner: gegnerOn });
 }
 function restoreState(){
   const s = store('ask_taktik');
@@ -1139,6 +1155,7 @@ function restoreState(){
     descNote = s.desc || '';
     formationLabel = s.form || '';
     if (s.sub) $('header-sub').textContent = s.sub;
+    if (typeof s.gegner === 'boolean') gegnerOn = s.gegner;
     renderPins();
     redraw();
     return true;
