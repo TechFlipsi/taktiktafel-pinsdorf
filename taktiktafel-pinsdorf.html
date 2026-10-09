@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Taktiktafel FC ASKÖ Pinsdorf</title>
+<style>
+:root{
+  --rot:#cc0033; --rot-d:#8f0024;
+  --bg:#111114; --bg2:#1b1b21; --bg3:#24242c;
+  --linie:rgba(255,255,255,.09);
+  --grau:#9a9aa8; --hell:#e8e8f2; --gold:#ffd23e;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:#fff;display:flex;flex-direction:column;overflow:hidden;
+  overscroll-behavior:none;
+}
+/* Header */
+header{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg2);border-bottom:1px solid var(--linie)}
+header svg{flex:0 0 auto;width:38px;height:38px;display:block}
+.hgroup{flex:1;min-width:0}
+.hgroup h1{font-size:14.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hgroup .sub{font-size:10.5px;color:var(--grau);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btnicon{flex:0 0 auto;background:var(--bg3);border:1px solid var(--linie);color:#fff;width:40px;height:40px;border-radius:10px;font-size:17px;cursor:pointer;line-height:1}
+.btnicon:active{background:var(--rot)}
+/* Tabs */
+nav{flex:0 0 auto;display:flex;background:var(--bg2);border-bottom:1px solid var(--linie);overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:1 0 auto;padding:10px 13px;border:none;background:none;color:var(--grau);font-size:12.5px;font-weight:700;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;font-family:inherit}
+nav button.on{color:#fff;border-bottom-color:var(--rot)}
+/* Tabs-Flächen */
+main{flex:1;min-height:0;display:flex;flex-direction:column}
+.tab{flex:1;min-height:0;display:none;flex-direction:column}
+.tab.on{display:flex}
+.scroll{flex:1;min-height:0;overflow-y:auto;padding:10px 12px 18px}
+/* Taktik-Feld */
+.feldwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:8px}
+.feldbox{
+  position:relative;aspect-ratio:100/64;width:100%;
+  max-width:min(94vw,calc((100dvh - 310px) * 1.5));
+  max-height:100%;margin:auto;border-radius:10px;touch-action:none;
+  background:linear-gradient(180deg,#1e7239 0%,#14612e 55%,#115a29 100%);
+  box-shadow:inset 0 0 0 1px var(--linie),0 8px 24px rgba(0,0,0,.45);
+}
+svg.feld,canvas.feldc{position:absolute;inset:0;width:100%;height:100%;border-radius:10px}
+#pins{position:absolute;inset:0;touch-action:none}
+.feldbox{touch-action:none !important}
+.pin{
+  position:absolute;width:10.5%;padding-top:10.5%;border-radius:50%;
+  transform:translate(-50%,-50%);user-select:none;cursor:grab;border:none;
+  display:flex;align-items:center;justify-content:center;z-index:5;font-family:inherit;
+}
+.pin .lbl{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:clamp(9px,2.4vw,15px);line-height:1;
+}
+.pin.home{background:radial-gradient(circle at 35% 30%,#ff5070 0%,var(--rot) 48%,var(--rot-d) 100%);box-shadow:0 2px 6px rgba(0,0,0,.55),inset 0 0 0 2px rgba(255,255,255,.22)}
+.pin.home .lbl{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+.pin.opp{background:radial-gradient(circle at 35% 30%,#ffffff 0%,#ececec 50%,#c2c2c2 100%);box-shadow:0 2px 6px rgba(0,0,0,.55)}
+.pin.opp .lbl{color:#16161a}
+.pin.gk{box-shadow:0 2px 6px rgba(0,0,0,.55),0 0 0 3px var(--gold),inset 0 0 0 2px rgba(255,255,255,.22)}
+.pin.sel{box-shadow:0 2px 6px rgba(0,0,0,.55),0 0 0 3px #fff,inset 0 0 0 2px rgba(255,255,255,.3)}
+.pin.drag{cursor:grabbing;box-shadow:0 6px 14px rgba(0,0,0,.6),0 0 0 3px var(--gold)}
+/* Toolbar */
+.toolbar{flex:0 0 auto;display:flex;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border-top:1px solid var(--linie);flex-wrap:wrap}
+.toolbar::-webkit-scrollbar{display:none}
+.tbtn{flex:0 0 auto;background:var(--bg3);border:1px solid var(--linie);color:#fff;padding:9px 12px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tbtn.on{background:var(--rot);border-color:var(--rot)}
+.sep{flex:0 0 auto;width:1px;height:22px;background:var(--linie);margin:0 2px}
+select.fauswahl{background:var(--bg3);border:1px solid var(--linie);color:#fff;border-radius:9px;padding:9px 10px;font-size:12px;font-weight:700;flex:0 0 auto;font-family:inherit}
+/* Karten/Formulare */
+.card{background:var(--bg2);border:1px solid var(--linie);border-radius:12px;padding:12px;margin-bottom:10px}
+.card h3{font-size:12px;text-transform:uppercase;letter-spacing:.9px;color:var(--rot);margin-bottom:10px}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+input[type=text],input[type=number],select,textarea{
+  background:var(--bg3);border:1px solid var(--linie);color:#fff;border-radius:8px;
+  padding:9px 10px;font-size:13px;width:100%;font-family:inherit;
+}
+textarea{min-height:66px;resize:vertical}
+label.feldlabel{font-size:11px;color:var(--grau);display:block;margin:8px 0 4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.bigbtn{display:block;width:100%;background:var(--rot);color:#fff;border:none;padding:12px;border-radius:10px;font-size:13.5px;font-weight:800;cursor:pointer;letter-spacing:.3px;font-family:inherit}
+.bigbtn.ghost{background:var(--bg3);border:1px solid var(--linie)}
+.bigbtn:active{opacity:.85}
+.listen{list-style:none}
+.listen li{display:flex;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px solid var(--linie);font-size:13px}
+.listen .kd{flex:1;min-width:0}
+.listen .kd b{font-weight:700}
+.listen .kd small{color:var(--grau);display:block;font-size:11px;margin-top:1px}
+.del{background:none;border:none;color:var(--grau);font-size:14px;cursor:pointer;padding:6px 8px;font-family:inherit}
+/* Timer */
+.timerbox{display:flex;gap:8px;align-items:stretch}
+.timerbox .tval{flex:1;background:var(--bg3);border:1px solid var(--linie);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;min-width:0}
+.timerbox .tval b{font-size:27px;font-variant-numeric:tabular-nums}
+.timerbox .tval span{font-size:10px;color:var(--grau);text-transform:uppercase;letter-spacing:.7px;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.timerbox .tbtns{display:flex;flex-direction:column;gap:6px;justify-content:center}
+.timerbox .tbtns button{background:var(--bg3);border:1px solid var(--linie);color:#fff;border-radius:8px;padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
+.timerbox .tbtns .go{background:var(--rot);border-color:var(--rot)}
+/* Spieltag */
+.sc-head{display:grid;grid-template-columns:1fr 92px 1fr;gap:6px;align-items:center;text-align:center;margin-bottom:8px}
+.scorebox{display:flex;flex-direction:column;align-items:center;background:var(--bg3);border:1px solid var(--linie);border-radius:10px;padding:7px 4px}
+.scorebox .sc{font-size:23px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.15}
+.scorebox .scbtnr{display:flex;gap:8px;margin-top:3px}
+.scorebox .scbtnr button{background:none;border:none;color:var(--rot);font-size:17px;font-weight:900;cursor:pointer;padding:2px 6px;line-height:1}
+.scrow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.scbtn{background:var(--bg3);border:1px solid var(--linie);color:#fff;border-radius:9px;padding:10px 2px;font-size:11px;font-weight:700;cursor:pointer;line-height:1.3;font-family:inherit}
+.scbtn small{display:block;font-size:16px;margin-bottom:3px}
+.scbtn.on{background:var(--rot);border-color:var(--rot)}
+.seg{display:flex;gap:4px;margin-bottom:8px}
+.seg button{flex:1;background:var(--bg3);border:1px solid var(--linie);color:var(--grau);padding:8px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.seg button.on{background:var(--rot);color:#fff;border-color:var(--rot)}
+.evlist{list-style:none}
+.evlist li{display:flex;gap:8px;align-items:baseline;padding:7px 4px;border-bottom:1px solid var(--linie);font-size:12.5px}
+.evlist .min{font-weight:800;color:var(--rot);min-width:38px;font-variant-numeric:tabular-nums}
+.evlist .et{flex:1;color:var(--hell)}
+.ex{background:none;border:none;color:var(--grau);cursor:pointer;padding:2px 6px;font-family:inherit}
+/* Tipps */
+.titem{border-left:3px solid var(--rot);padding:10px 12px;background:var(--bg2);border-radius:0 10px 10px 0;margin-bottom:8px}
+.titem b{display:block;font-size:12.5px;margin-bottom:4px}
+.titem p{font-size:12px;color:#c9c9d6;line-height:1.6}
+/* Sonstiges */
+#toast{position:fixed;left:50%;bottom:52px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--gold);color:#111114;font-weight:800;font-size:13px;padding:10px 18px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.5);transition:transform .25s,opacity .25s;z-index:99;pointer-events:none;max-width:88vw;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+.modal.on{display:flex}
+.modal .box{background:var(--bg2);border:1px solid var(--linie);border-radius:14px;padding:16px;width:100%;max-width:360px;max-height:86vh;overflow-y:auto}
+.modal .box h3{font-size:14px;margin-bottom:12px}
+.modal .box .bigbtn{margin-top:10px}
+#expbar{position:fixed;inset:0;background:rgba(10,10,14,.96);z-index:200;display:none;align-items:center;justify-content:center;padding:12px;flex-direction:column;gap:12px}
+#expbar.on{display:flex}
+#expimg{max-width:100%;max-height:76vh;border-radius:10px}
+#expbar .hint{font-size:12px;color:var(--grau);text-align:center}
+.hiddenfile{display:none}
+
+.badge,.v-badges,.v-stativ,.v-form,.v-tabs,.vtb,.tabwrap-scroll,.v-quelle,.v-exp,.v-stats,.vpb,.vpnr{}
+/* Verein-Tab */
+.v-badges{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.v-badge{background:var(--bg3);border:1px solid var(--linie);border-radius:11px;padding:10px 6px;text-align:center}
+.v-badge b{display:block;font-size:22px;font-weight:900;color:var(--rot);font-variant-numeric:tabular-nums;line-height:1.2}
+.v-badge span{font-size:9.5px;color:var(--grau);text-transform:uppercase;letter-spacing:.6px;display:block;margin-top:3px}
+.v-stativ{display:flex;flex-wrap:wrap;gap:6px}
+.v-chip{background:var(--bg3);border:1px solid var(--linie);color:#d8d8e2;border-radius:20px;padding:6px 12px;font-size:11.5px;font-weight:600}
+.v-form{display:flex;gap:5px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.v-form .flbl{font-size:10.5px;color:var(--grau);margin-right:4px;text-transform:uppercase;letter-spacing:.6px}
+.fdot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff}
+.fdot.S{background:#1e9e4a}.fdot.U{background:#c9a227}.fdot.N{background:#b71327}
+.fdot.F{background:var(--bg3);color:var(--grau);font-weight:700;font-size:9px}
+.tabwrap-scroll{overflow-x:auto;margin:0 -4px;padding:0 4px;-webkit-overflow-scrolling:touch}
+.v-tab{width:100%;border-collapse:collapse;font-size:12px;min-width:330px}
+.v-tab th{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--grau);text-align:center;padding:5px 4px;border-bottom:1px solid var(--linie);font-weight:700}
+.v-tab td{padding:7px 4px;text-align:center;border-bottom:1px solid rgba(255,255,255,.05);font-variant-numeric:tabular-nums;color:#e2e2ec}
+.v-tab td.tname{text-align:left;font-weight:600;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.v-tab tr.me td{background:rgba(204,0,51,.16);font-weight:800}
+.v-tab td.vpt{font-weight:900;color:#ffd23e}
+.v-tab td.tpos{font-weight:800;color:var(--grau);width:26px}
+.v-quelle{font-size:10.5px;color:var(--grau);margin-top:8px;line-height:1.5}
+.v-exp{font-size:12px;color:#c9c9d6;line-height:1.6}
+.v-tabs{display:flex;gap:6px;margin-bottom:8px}
+.vtb{flex:1;background:var(--bg3);border:1px solid var(--linie);color:var(--grau);padding:8px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.vtb.on{background:var(--rot);color:#fff;border-color:var(--rot)}
+.sp-row{display:flex;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px solid rgba(255,255,255,.05);font-size:12.5px}
+.sp-row .rd{color:var(--grau);font-size:10.5px;width:22px;font-weight:700}
+.sp-row .dt{width:70px;color:var(--grau);font-size:10.5px}
+.sp-row .tm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-row .tm.r{text-align:right}
+.sp-row .er{font-weight:900;font-variant-numeric:tabular-nums;min-width:74px;text-align:center;padding:3px 7px;border-radius:7px;font-size:12px}
+.sp-row .er.S{background:rgba(30,158,74,.22);color:#5ee69a}
+.sp-row .er.U{background:rgba(201,162,39,.22);color:#ffd97a}
+.sp-row .er.N{background:rgba(183,19,39,.25);color:#ff8fa0}
+.sp-row .er.G{background:var(--bg3);color:var(--grau);font-weight:700;font-size:11px}
+
+.sp-row .er small{display:block;font-size:9px;font-weight:700;opacity:.75;margin-top:1px}{color:#fff;font-weight:800}
+.sp-row .tm.me{color:#fff;font-weight:800}
+.kd-grid{display:grid;grid-template-columns:1fr;gap:6px}
+.kd-row{display:flex;align-items:center;gap:9px;background:var(--bg3);border:1px solid var(--linie);border-radius:9px;padding:8px 10px}
+.kd-row .knr{width:34px;height:34px;border-radius:50%;background:var(--rot);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12.5px;flex:0 0 auto}
+.kd-row .knr.onr{background:var(--bg3);border:1px dashed var(--linie);color:var(--grau)}
+.kd-row .knm{font-weight:700;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kd-row .kpos{font-size:9.5px;color:var(--grau);text-transform:uppercase;letter-spacing:.5px}
+.kd-head{font-size:10.5px;color:var(--rot);text-transform:uppercase;letter-spacing:.8px;font-weight:800;margin:10px 0 6px}
+.staff-row{display:flex;align-items:center;gap:9px;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,.05);font-size:12.5px}
+.staff-row .srole{color:var(--grau);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;margin-left:auto}
+#v-refresh-info.err{color:#ff8fa0}
+@media (min-width:760px){
+  .v-badges{grid-template-columns:repeat(6,1fr)}
+  .tabwrap-scroll{overflow-x:visible}
+}
+
+@media (min-width:760px){
+  .hgroup h1{font-size:16.5px}
+  nav button{font-size:13.5px}
+  .pin .lbl{font-size:clamp(12px,1.6vw,17px)}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <svg viewBox="0 0 60 60" aria-label="FC ASKÖ Pinsdorf">
+    <path d="M30 3 L54 10 V32 C54 45 44 53.5 30 58 C16 53.5 6 45 6 32 V10 Z" fill="#ffffff" stroke="#111114" stroke-width="3.4"/>
+    <path d="M11.2 22.5 H48.8 M11.2 37.5 H48.8" stroke="#111114" stroke-width="2.6"/>
+    <rect x="11.4" y="24.6" width="7.3" height="10.6" fill="#cc0033"/>
+    <rect x="26.35" y="24.6" width="7.3" height="10.6" fill="#cc0033"/>
+    <rect x="41.3" y="24.6" width="7.3" height="10.6" fill="#cc0033"/>
+    <circle cx="30" cy="47" r="5.6" fill="#ffffff" stroke="#111114" stroke-width="2"/>
+    <path d="M30 41.6 V45.2 M26.1 44.4 L29 46.1 M33.9 44.4 L31 46.1 M27.3 49.7 L29.2 47.2 M32.7 49.7 L30.8 47.2" stroke="#111114" stroke-width="1.1" fill="none"/>
+    <text x="30" y="17.5" text-anchor="middle" font-size="8.4" font-weight="800" font-style="italic" fill="#111114">FCP1966</text>
+  </svg>
+  <div class="hgroup">
+    <h1>Taktiktafel · FC ASKÖ Pinsdorf</h1>
+    <div class="sub" id="header-sub">2. Klasse Süd · Sportplatz Pinsdorf (Rasen 100 × 64 m)</div>
+  </div>
+  <button class="btnicon" id="btn-reset-feld" title="Feld zurücksetzen">↺</button>
+</header>
+
+<nav id="nav">
+  <button id="nav-taktik" class="on">Taktiktafel</button>
+  <button id="nav-training">Training</button>
+  <button id="nav-spieltag">Spieltag</button>
+  <button id="nav-verein">Verein</button>
+  <button id="nav-trainerbox">Trainerbox</button>
+</nav>
+
+<main>
+  <!-- ============ TAKTIK ============ -->
+  <section class="tab on" id="tab-taktik">
+    <div class="feldwrap"><div class="feldbox" id="feldbox">
+      <svg class="feld" viewBox="0 0 1000 640" preserveAspectRatio="none" aria-hidden="true">
+        <rect x="18" y="18" width="964" height="604" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.6"/>
+        <line x1="500" y1="18" x2="500" y2="622" stroke="rgba(255,255,255,.85)" stroke-width="2.6"/>
+        <circle cx="500" cy="320" r="72" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.6"/>
+        <circle cx="500" cy="320" r="4" fill="rgba(255,255,255,.85)"/>
+        <rect x="18" y="196" width="118" height="248" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.6"/>
+        <rect x="18" y="270" width="46" height="100" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.6"/>
+        <rect x="864" y="196" width="118" height="248" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.6"/>
+        <rect x="936" y="270" width="46" height="100" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.6"/>
+        <path d="M136 267 A 82 82 0 0 1 136 373" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.6"/>
+        <path d="M864 267 A 82 82 0 0 0 864 373" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.6"/>
+      </svg>
+      <canvas class="feldc" id="draw"></canvas>
+      <div id="pins"></div>
+    </div></div>
+    <div class="toolbar">
+      <button class="tbtn on" id="m-move" title="Spieler verschieben">✥ Zug</button>
+      <button class="tbtn" id="m-arrow" title="Laufwege zeichnen">↗ Pfeile</button>
+      <button class="tbtn" id="m-zone" title="Zonen aufziehen">▤ Zone</button>
+      <button class="tbtn" id="m-loeschen" title="Zeichnung lösen">⌫ Löschen</button>
+      <div class="sep"></div>
+      <button class="tbtn" id="btn-flip" title="Angriffsrichtung drehen">⇄</button>
+      <select id="formation" class="fauswahl">
+        <option value="">Formation…</option>
+        <option value="4-4-2">4-4-2</option>
+        <option value="4-2-3-1">4-2-3-1</option>
+        <option value="4-3-3">4-3-3</option>
+        <option value="3-5-2">3-5-2</option>
+        <option value="5-3-2">5-3-2</option>
+        <option value="4-1-4-1">4-1-4-1</option>
+        <option value="4-2-2-2">4-2-2-2</option>
+        <option value="3-4-3">3-4-3</option>
+        <option value="5-4-1">5-4-1 (tief)</option>
+        <option value="4-2-4">4-2-4 (offensiv)</option>
+      </select>
+    </div>
+    <div class="toolbar">
+      <button class="tbtn" id="btn-sc-save">💾 Szenario</button>
+      <button class="tbtn" id="btn-sc-load">📂 Laden</button>
+      <button class="tbtn" id="btn-standards">📋 Standards</button>
+      <button class="tbtn" id="btn-export">🧩 Bild exportieren</button>
+    </div>
+  </section>
+
+  <!-- ============ TRAINING ============ -->
+  <section class="tab" id="tab-training">
+    <div class="scroll">
+      <div class="card">
+        <h3>Session-Timer</h3>
+        <div class="timerbox">
+          <div class="tval"><b id="timer-val">10:00</b><span id="timer-label">Nächste Übung</span></div>
+          <div class="tbtns">
+            <button class="go" id="timer-go">▶ Start</button>
+            <button id="timer-reset">↺ Reset</button>
+          </div>
+        </div>
+        <label class="feldlabel" for="timer-min">Dauer (Minuten) für den einfachen Timer:</label>
+        <input type="number" id="timer-min" value="10" min="1" max="90">
+      </div>
+      <div class="card">
+        <h3>Trainingsaufbau</h3>
+        <div class="row"><input type="text" id="t-titel" placeholder="Titel der Übung (z. B. Passspiel im Viereck)"></div>
+        <div class="row">
+          <select id="t-dauer">
+            <option value="5">5 Min</option><option value="10" selected>10 Min</option>
+            <option value="15">15 Min</option><option value="20">20 Min</option>
+            <option value="25">25 Min</option><option value="30">30 Min</option>
+          </select>
+          <button class="btnicon" id="t-add" style="background:var(--rot);border-color:var(--rot);width:44px;height:42px;flex:0 0 auto">+</button>
+        </div>
+        <ul class="listen" id="t-list"></ul>
+        <div style="font-size:12px;color:var(--grau);margin:10px 0" id="t-sum"></div>
+        <button class="bigbtn" id="t-plan-start" style="margin-bottom:8px">▶ Timer mit Trainingsplan starten</button>
+        <button class="bigbtn ghost" id="t-copy">📝 Plan als Text kopieren</button>
+      </div>
+      <div class="card">
+        <h3>Notizen</h3>
+        <textarea id="t-notiz" placeholder="Schwerpunkt, Verletzte, Anmerkungen …"></textarea>
+        <div style="font-size:10.5px;color:var(--grau);margin-top:6px">Speichert automatisch auf diesem Gerät.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SPIELTAG ============ -->
+  <section class="tab" id="tab-spieltag">
+    <div class="scroll">
+      <div class="card">
+        <h3>Live-Wertung</h3>
+        <div class="sc-head">
+          <input type="text" id="st-heim" value="FC ASKÖ Pinsdorf" placeholder="Heim">
+          <div class="scorebox">
+            <div class="sc" id="st-score">0 : 0</div>
+            <div class="scbtnr">
+              <button id="st-sh" title="Tor Heim">＋</button>
+              <button id="st-sg" title="Tor Gast">＋</button>
+            </div>
+          </div>
+          <input type="text" id="st-gast" placeholder="Gast">
+        </div>
+        <div class="scrow">
+          <button class="scbtn" id="scb-torh"><small>⚽</small>Tor Heim</button>
+          <button class="scbtn" id="scb-torg"><small>⚽</small>Tor Gast</button>
+          <button class="scbtn" id="scb-gelb"><small>🟨</small>Gelb</button>
+          <button class="scbtn" id="scb-rot"><small>🟥</small>Rot</button>
+          <button class="scbtn" id="scb-wex"><small>🔄</small>Wechsel</button>
+          <button class="scbtn" id="scb-cha"><small>❗</small>Chance</button>
+        </div>
+        <div class="seg" id="seg-side">
+          <button data-side="Pinsdorf" class="on" id="seg-heim">Pinsdorf</button>
+          <button data-side="Gegner" id="seg-gast">Gegner</button>
+        </div>
+        <div class="row" style="margin-bottom:0">
+          <input type="number" id="st-min" placeholder="Min" min="0" max="130" style="width:84px;flex:0 0 auto">
+          <input type="text" id="st-who" placeholder="Rückennummer oder Name (optional)" style="flex:1;min-width:150px">
+          <button class="btnicon" id="st-add" style="background:var(--rot);border-color:var(--rot);width:44px;height:42px;flex:0 0 auto">＋</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Ereignisse</h3>
+        <ul class="evlist" id="st-list"></ul>
+        <div id="st-empty" style="font-size:12px;color:var(--grau);padding:6px 0">Noch keine Ereignisse notiert.</div>
+        <div class="row" style="margin-top:10px;margin-bottom:0">
+          <button class="bigbtn" id="st-copy" style="flex:1">📋 Spielbericht kopieren</button>
+          <button class="btnicon" id="st-clear" title="Alles zurücksetzen" style="background:var(--bg3);border-color:var(--linie);width:46px;height:44px">🗑</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VEREIN (Daten) ============ -->
+  <section class="tab" id="tab-verein">
+    <div class="scroll">
+      <div class="card" id="v-status">
+        <h3>Saison 2026/27 · 2. Klasse Süd</h3>
+        <div id="v-badges" class="v-badges"></div>
+        <div id="v-stativ" class="v-stativ"></div>
+      </div>
+      <div class="card">
+        <h3>Form & Tabelle</h3>
+        <div id="v-form" class="v-form"></div>
+        <div class="tabwrap-scroll" id="v-tabellewrap"></div>
+        <div class="v-quelle" id="v-quelle"></div>
+      </div>
+      <div class="card">
+        <h3>Spielplan</h3>
+        <div class="v-tabs">
+          <button class="vtb on" id="vtb-ergebnisse">Ergebnisse</button>
+          <button class="vtb" id="vtb-naechste">Nächste Spiele</button>
+        </div>
+        <div id="v-spiele"></div>
+      </div>
+      <div class="card">
+        <h3>Kader</h3>
+        <div id="v-kader"></div>
+        <div id="v-staff"></div>
+      </div>
+      <div class="card">
+        <h3>Datenquelle</h3>
+        <p class="v-exp">Die Tabelle, Ergebnisse, Spielplan und der Kader sind als Momentaufnahme eingebaut und können per Button über das Internet frisch geladen werden (Quelle: Ligaportal). Ohne Internet zeigt die Datei den eingebauten Stand.</p>
+        <button class="bigbtn" id="v-refresh" style="margin-top:8px">🔄 Daten aktualisieren</button>
+        <div id="v-refresh-info" class="v-quelle" style="margin-top:6px"></div>
+      </div>
+    </div>
+  </section>
+  <!-- ============ TRAINERBOX ============ -->
+  <section class="tab" id="tab-trainerbox">
+    <div class="scroll" id="tipps-wrap"></div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<div class="modal" id="modal-save">
+  <div class="box">
+    <h3>Szenario speichern</h3>
+    <input type="text" id="ms-name" placeholder="Name (z. B. Eckstoß kurz)">
+    <button class="bigbtn" id="ms-ok">Speichern</button>
+    <button class="bigbtn ghost" id="ms-cancel">Abbrechen</button>
+  </div>
+</div>
+
+<div class="modal" id="modal-load">
+  <div class="box">
+    <h3>Gespeicherte Szenarien</h3>
+    <div id="ml-list"></div>
+    <button class="bigbtn ghost" id="ml-cancel">Schließen</button>
+  </div>
+</div>
+
+<div class="modal" id="modal-standards">
+  <div class="box">
+    <h3>Standards-Vorlage laden</h3>
+    <div id="msd-list"></div>
+    <button class="bigbtn ghost" id="msd-cancel">Schließen</button>
+  </div>
+</div>
+
+<div id="expbar">
+  <img id="expimg" alt="Taktik-Bild">
+  <div class="hint">Auf dem Handy: Bild länger antippen → „Bild speichern“ → in die Teamgruppe posten.</div>
+  <button class="bigbtn" id="exp-close" style="max-width:260px">Schließen</button>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   Taktiktafel FC ASKÖ Pinsdorf
+   Ein-Datei-Tool, offline, keine Serveranbindung.
+   Alle Daten bleiben lokal im Browser (localStorage).
+   ============================================================ */
+
+/* ---------- Helfer ---------- */
+const $ = function(id){ return document.getElementById(id); };
+const esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ t.classList.remove('show'); }, 2100);
+}
+function store(key, val){
+  try{
+    if (val === undefined){
+      const r = localStorage.getItem(key);
+      return r === null ? null : JSON.parse(r);
+    }
+    localStorage.setItem(key, JSON.stringify(val));
+  }catch(e){ return null; }
+}
+function copyText(txt, msg){
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ toast(msg); }).catch(function(){ fallbackCopy(txt, msg); });
+  } else { fallbackCopy(txt, msg); }
+}
+function fallbackCopy(txt, msg){
+  const ta = document.createElement('textarea');
+  ta.value = txt;
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); toast(msg); }catch(e){ window.alert(txt); }
+  ta.remove();
+}
+
+/* ---------- Tabs ---------- */
+let curTab = 'taktik';
+function showTab(name){
+  curTab = name;
+  ['taktik','training','spieltag','verein','trainerbox'].forEach(function(t){
+    const btn = $('nav-' + t);
+    const tab = $('tab-' + t);
+    if (btn){ btn.classList.toggle('on', t === name); }
+    if (tab){ tab.classList.toggle('on', t === name); }
+  });
+  if (name === 'taktik'){ syncCanvas(); }
+}
+$('nav-taktik').onclick = function(){ showTab('taktik'); };
+$('nav-training').onclick = function(){ showTab('training'); };
+$('nav-spieltag').onclick = function(){ showTab('spieltag'); };
+$('nav-verein').onclick = function(){ showTab('verein'); };
+$('nav-trainerbox').onclick = function(){ showTab('trainerbox'); };
+
+/* ============================================================
+   TAKTIK — Daten
+   [Nummer, x%, y%]; Heimmannschaft = rot, x = eigene Hälfte
+   ============================================================ */
+const FORM = {
+  '4-4-2':   [[1,16,50],[2,45,14],[4,45,37],[5,45,63],[3,45,86],[7,65,16],[8,60,41],[6,60,59],[11,65,84],[9,82,42],[10,82,58]],
+  '4-2-3-1': [[1,16,50],[2,45,14],[4,45,37],[5,45,63],[3,45,86],[6,58,40],[8,58,60],[7,74,15],[10,74,50],[11,74,85],[9,86,50]],
+  '4-3-3':   [[1,16,50],[2,45,14],[4,45,37],[5,45,63],[3,45,86],[6,58,50],[8,56,27],[10,56,73],[7,76,15],[9,84,50],[11,76,85]],
+  '3-5-2':   [[1,16,50],[4,45,28],[5,42,50],[2,45,72],[3,62,10],[8,58,34],[6,56,50],[10,58,66],[7,62,90],[9,80,42],[11,80,58]],
+  '5-3-2':   [[1,16,50],[2,47,10],[4,42,32],[5,40,50],[6,42,68],[3,47,90],[7,60,26],[8,58,50],[10,60,74],[9,78,42],[11,78,58]],
+  '4-1-4-1': [[1,16,50],[2,45,14],[4,45,37],[5,45,63],[3,45,86],[6,58,50],[7,72,12],[8,70,38],[10,70,62],[11,72,88],[9,84,50]],
+  '4-2-2-2': [[1,16,50],[2,45,14],[4,45,37],[5,45,63],[3,45,86],[6,57,36],[8,57,64],[7,72,31],[10,72,69],[9,82,42],[11,82,58]],
+  '3-4-3':   [[1,16,50],[4,45,27],[5,42,50],[6,45,73],[2,60,12],[8,56,40],[10,56,60],[3,60,88],[7,78,16],[9,84,50],[11,78,84]],
+  '5-4-1':   [[1,14,50],[2,50,10],[4,44,30],[5,42,48],[6,44,66],[3,50,90],[7,64,24],[8,62,42],[10,62,58],[11,64,76],[9,80,50]],
+  '4-2-4':   [[1,16,50],[2,42,12],[4,40,38],[5,40,62],[3,42,88],[6,58,42],[8,58,58],[7,80,14],[9,84,40],[10,84,60],[11,80,86]]
+};
+const STANDARDS = {
+  'Grundordnung 4-4-2': {
+    form:'4-4-2', mirror:true, arrows:[], zones:[],
+    desc:'Grundordnung beim Anstoß — kompakt, Zwei-Stürmer zentral.'
+  },
+  'Eckstoß kurz': {
+    form:'4-2-3-1',
+    home:[[1,93,50],[5,40,70],[4,32,45],[10,52,40],[7,63,18],[6,34,22],[2,55,10],[3,68,88],[11,44,84],[9,70,60]],
+    opp:[[86,22],[79,26],[72,18],[68,30],[60,20],[75,38],[82,50],[66,44],[70,72],[79,62],[64,60]],
+    arrows:[[92,26,84,22],[91,30,70,60]],
+    zones:[],
+    desc:'Kurzer Eckball ins Nahfeld (Nummer 7), direkte Flanke auf den zweiten Pfosten — Überraschung statt Standard-Beschuss.'
+  },
+  'Eckstoß weit + zweite Kugel': {
+    form:'4-2-3-1',
+    home:[[1,93,50],[5,36,66],[4,28,44],[10,48,34],[6,30,64],[2,50,10],[3,60,88],[11,42,80],[9,58,58]],
+    opp:[[84,20],[77,24],[70,16],[66,30],[58,20],[73,36],[80,50],[64,42],[68,70],[78,60],[62,58]],
+    arrows:[[92,54,60,58],[92,58,58,34]],
+    zones:[[30,40,62,52]],
+    desc:'Flanke in den Zonenbereich — Kopfballverlängerung auf Nummer 10 an der Nahkante, Schuss aus der zweiten Reihe.'
+  },
+  'Freistoß direkt': {
+    form:'4-2-3-1',
+    home:[[1,93,50],[5,42,72],[4,36,40],[10,56,36],[6,40,62],[2,60,10],[3,70,88],[11,50,80],[7,74,18]],
+    opp:[[76,44],[82,36],[70,50],[74,62],[86,38],[80,54]],
+    arrows:[[88,44,76,44]],
+    zones:[],
+    desc:'Direktabschluss mit Effet über die Mauer — Nummer 10 schließt ab, zwei Läufer öffnen die Mauernecke.'
+  },
+  'Anstoß Variante': {
+    form:'4-2-3-1',
+    home:[[1,93,50],[5,52,70],[4,48,40],[10,56,48],[6,50,60],[2,62,12],[3,70,88],[11,58,22],[7,64,74],[9,50,50]],
+    opp:[[92,48],[88,50],[86,52],[84,54]],
+    arrows:[[50,50,64,74],[64,74,86,84]],
+    zones:[],
+    desc:'Anstoß zurück, dann sofort langer Diagonalball auf Nummer 11 — der Gegner steht beim Anstoß hoch.'
+  },
+  'Pressing hoch': {
+    form:'4-2-3-1',
+    home:[[1,34,50],[5,56,66],[4,54,42],[10,62,40],[6,56,60],[2,64,12],[3,66,88],[11,68,24],[7,70,76],[9,66,50]],
+    opp:[[14,42],[18,58],[10,50],[20,36],[22,64],[12,30],[12,70],[16,44],[20,56],[6,50],[24,50]],
+    arrows:[],
+    zones:[[8,34,36,66]],
+    desc:'Abstoß des Gegners = Ansprungsignal: Kette schiebt auf, Stürmer deckt Innenbahn zu, Ballbesitz erzwingen.'
+  },
+  'Konter-Übergang': {
+    form:'4-2-3-1',
+    home:[[1,20,50],[5,40,68],[4,42,40],[10,44,46],[6,42,58],[2,48,14],[3,50,86],[11,66,26],[7,64,74],[9,74,50]],
+    opp:[[54,44],[56,56],[52,50],[60,38],[62,62]],
+    arrows:[[74,50,96,56],[64,26,88,22]],
+    zones:[],
+    desc:'Ballgewinn im Mitteldrittel: erster Pass nach vorne auf Nummer 9, beide Flügelläufer sprinten mit.'
+  }
+};
+
+/* ---------- Zustand ---------- */
+let pins = [];        /* {label, home, gk, x, y} */
+let shapes = [];      /* {t:'arrow'|'zone', x1,y1,x2,y2} */
+let descNote = '';
+let formationLabel = '';
+let mode = 'move';
+let dragIdx = -1;
+let selIdx = -1;
+let drawing = false;
+let drawStart = null;
+let temp = null;
+
+/* ---------- Canvas ---------- */
+const feldbox = $('feldbox');
+const pinsLayer = $('pins');
+const canvas = $('draw');
+let ctx = null;
+try{ ctx = canvas.getContext('2d'); }catch(e){ ctx = null; }
+let FW = 640, FH = 410;
+
+function syncCanvas(){
+  try{
+    const r = feldbox.getBoundingClientRect();
+    if (r.width > 0){ FW = r.width; FH = r.height; }
+  }catch(e){}
+  if (!ctx) return;
+  try{
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(FW * dpr);
+    canvas.height = Math.round(FH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }catch(e){}
+  redraw();
+}
+function pOn(ev){
+  const r = canvas.getBoundingClientRect();
+  if (!r.width || !r.height) return null;
+  let x = (ev.clientX - r.left) / r.width * 100;
+  let y = (ev.clientY - r.top) / r.height * 100;
+  if (x < 2) x = 2; if (x > 98) x = 98;
+  if (y < 3) y = 3; if (y > 97) y = 97;
+  return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+}
+
+/* ---------- Pins ---------- */
+function renderPins(){
+  pinsLayer.innerHTML = '';
+  pins.forEach(function(p, i){
+    const el = document.createElement('button');
+    el.className = 'pin ' + (p.home ? 'home' : 'opp') + (p.gk ? ' gk' : '') + (i === selIdx ? ' sel' : '');
+    el.dataset.i = String(i);
+    el.setAttribute('aria-label', (p.home ? 'Spieler ' : 'Gegner ') + p.label);
+    const inner = document.createElement('span');
+    inner.className = 'lbl';
+    inner.textContent = p.label;
+    el.appendChild(inner);
+    el.style.left = p.x + '%';
+    el.style.top = p.y + '%';
+    attachPin(el);
+    pinsLayer.appendChild(el);
+  });
+}
+function attachPin(el){
+  function posFromTouch(t){
+    const r = pinsLayer.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    let x = (t.clientX - r.left) / r.width * 100;
+    let y = (t.clientY - r.top) / r.height * 100;
+    if (x < 3) x = 3; if (x > 97) x = 97;
+    if (y < 4) y = 4; if (y > 96) y = 96;
+    return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+  }
+  el.addEventListener('pointerdown', function(ev){
+    if (mode !== 'move') return;
+    if (ev.pointerType === 'touch') return; /* Touch läuft über eigene Handler */
+    const i = parseInt(el.dataset.i, 10);
+    if (isNaN(i) || !pins[i]) return;
+    ev.preventDefault();
+    dragIdx = i;
+    selIdx = i;
+    el.classList.add('drag');
+    try{ el.setPointerCapture(ev.pointerId); }catch(e){}
+  });
+  el.addEventListener('pointermove', function(ev){
+    if (ev.pointerType === 'touch') return;
+    if (dragIdx < 0 || parseInt(el.dataset.i, 10) !== dragIdx) return;
+    ev.preventDefault();
+    const np = posFromTouch(ev);
+    if (!np) return;
+    pins[dragIdx].x = np.x;
+    pins[dragIdx].y = np.y;
+    el.style.left = np.x + '%';
+    el.style.top = np.y + '%';
+  });
+  function up(){
+    if (dragIdx < 0) return;
+    el.classList.remove('drag');
+    dragIdx = -1;
+    saveState();
+  }
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+  /* Touch-Drag: dedizierte Handler (Android bricht Pointer-Kette bei Touch ab) */
+  el.addEventListener('touchstart', function(ev){
+    if (mode !== 'move') return;
+    const i = parseInt(el.dataset.i, 10);
+    if (isNaN(i) || !pins[i]) return;
+    ev.preventDefault();
+    dragIdx = i;
+    selIdx = i;
+    el.classList.add('drag');
+  }, { passive: false });
+  el.addEventListener('touchmove', function(ev){
+    if (dragIdx < 0 || parseInt(el.dataset.i, 10) !== dragIdx) return;
+    ev.preventDefault();
+    const np = posFromTouch(ev.changedTouches[0]);
+    if (!np) return;
+    pins[dragIdx].x = np.x;
+    pins[dragIdx].y = np.y;
+    el.style.left = np.x + '%';
+    el.style.top = np.y + '%';
+  }, { passive: false });
+  el.addEventListener('touchend', function(ev){
+    if (dragIdx < 0 || parseInt(el.dataset.i, 10) !== dragIdx) return;
+    ev.preventDefault();
+    up();
+  }, { passive: false });
+  el.addEventListener('touchcancel', function(){
+    if (dragIdx < 0) return;
+    up();
+  });
+}
+
+/* ---------- Zeichnen ---------- */
+function attachDraw(){
+  canvas.addEventListener('pointerdown', function(ev){
+    if (mode === 'move') return;
+    if (ev.pointerType === 'touch') return; /* Touch läuft über eigene Handler */
+    ev.preventDefault();
+    const p = pOn(ev);
+    if (!p) return;
+    drawing = true;
+    drawStart = p;
+    temp = null;
+    try{ canvas.setPointerCapture(ev.pointerId); }catch(e){}
+  });
+  canvas.addEventListener('pointermove', function(ev){
+    if (!drawing || ev.pointerType === 'touch') return;
+    const p = pOn(ev);
+    if (!p) return;
+    if (mode === 'arrow'){
+      temp = { t:'arrow', x1:drawStart.x, y1:drawStart.y, x2:p.x, y2:p.y };
+    } else {
+      temp = { t:'zone', x1:drawStart.x, y1:drawStart.y, x2:p.x, y2:p.y };
+    }
+    redraw();
+  });
+  canvas.addEventListener('pointerup', function(ev){
+    if (!drawing || ev.pointerType === 'touch') return;
+    drawing = false;
+    commitTemp();
+  });
+  canvas.addEventListener('pointercancel', function(){
+    drawing = false;
+    temp = null;
+    redraw();
+  });
+  /* Touch-Zeichnen: dedizierte Handler (Android/WA-Web bricht Pointer-Kette bei touchstart ab) */
+  canvas.addEventListener('touchstart', function(ev){
+    if (mode === 'move') return;
+    ev.preventDefault();
+    const t = ev.changedTouches[0];
+    const p = pOn(t);
+    if (!p) return;
+    drawing = true;
+    drawStart = p;
+    temp = null;
+  }, { passive: false });
+  canvas.addEventListener('touchmove', function(ev){
+    if (!drawing) return;
+    ev.preventDefault();
+    const t = ev.changedTouches[0];
+    const p = pOn(t);
+    if (!p) return;
+    if (mode === 'arrow'){
+      temp = { t:'arrow', x1:drawStart.x, y1:drawStart.y, x2:p.x, y2:p.y };
+    } else {
+      temp = { t:'zone', x1:drawStart.x, y1:drawStart.y, x2:p.x, y2:p.y };
+    }
+    redraw();
+  }, { passive: false });
+  canvas.addEventListener('touchend', function(ev){
+    if (!drawing) return;
+    ev.preventDefault();
+    drawing = false;
+    commitTemp();
+  }, { passive: false });
+  canvas.addEventListener('touchcancel', function(){
+    drawing = false;
+    temp = null;
+    redraw();
+  });
+}
+function commitTemp(){
+  if (!temp) { redraw(); return; }
+  if (temp.t === 'arrow'){
+    if (Math.hypot(temp.x2 - temp.x1, temp.y2 - temp.y1) > 3){
+      shapes.push(temp);
+      saveState();
+    }
+  } else {
+    const w = Math.abs(temp.x2 - temp.x1), h = Math.abs(temp.y2 - temp.y1);
+    if (w > 2 && h > 2){
+      shapes.push({ t:'zone', x1:Math.min(temp.x1,temp.x2), y1:Math.min(temp.y1,temp.y2), x2:Math.max(temp.x1,temp.x2), y2:Math.max(temp.y1,temp.y2) });
+      saveState();
+    }
+  }
+  temp = null;
+  redraw();
+}
+function drawArrowShape(c, a, color, lw){
+  /* a = absolute Pixel-Koordinaten {x1,y1,x2,y2} */
+  const ang = Math.atan2(a.y2 - a.y1, a.x2 - a.x1);
+  const head = lw * 3.4;
+  const ex = a.x2 - Math.cos(ang) * head;
+  const ey = a.y2 - Math.sin(ang) * head;
+  c.save();
+  c.strokeStyle = color;
+  c.fillStyle = color;
+  c.lineWidth = lw;
+  c.lineCap = 'round';
+  c.beginPath();
+  c.moveTo(a.x1, a.y1);
+  c.lineTo(ex, ey);
+  c.stroke();
+  c.beginPath();
+  c.moveTo(a.x2, a.y2);
+  c.lineTo(a.x2 - Math.cos(ang - 0.42) * head, a.y2 - Math.sin(ang - 0.42) * head);
+  c.lineTo(a.x2 - Math.cos(ang + 0.42) * head, a.y2 - Math.sin(ang + 0.42) * head);
+  c.closePath();
+  c.fill();
+  c.restore();
+}
+function redraw(){
+  if (!ctx) return;
+  try{ ctx.clearRect(0, 0, FW, FH); }catch(e){ return; }
+  shapes.forEach(function(s){
+    if (s.t !== 'zone') return;
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,.16)';
+    ctx.strokeStyle = 'rgba(255,255,255,.8)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 5]);
+    ctx.beginPath();
+    ctx.rect(s.x1 / 100 * FW, s.y1 / 100 * FH, (s.x2 - s.x1) / 100 * FW, (s.y2 - s.y1) / 100 * FH);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  });
+  shapes.forEach(function(s){
+    if (s.t !== 'arrow') return;
+    drawArrowShape(ctx, { x1:s.x1/100*FW, y1:s.y1/100*FH, x2:s.x2/100*FW, y2:s.y2/100*FH }, '#ff4d6e', 4.2);
+  });
+  if (temp){
+    if (temp.t === 'arrow'){
+      drawArrowShape(ctx, { x1:temp.x1/100*FW, y1:temp.y1/100*FH, x2:temp.x2/100*FW, y2:temp.y2/100*FH }, 'rgba(255,210,62,.95)', 4.2);
+    } else {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,210,62,.25)';
+      ctx.strokeStyle = 'rgba(255,210,62,.9)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.rect(Math.min(temp.x1,temp.x2)/100*FW, Math.min(temp.y1,temp.y2)/100*FH, Math.abs(temp.x2-temp.x1)/100*FW, Math.abs(temp.y2-temp.y1)/100*FH);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+
+/* ---------- Modi ---------- */
+function setMode(m){
+  mode = m;
+  $('m-move').classList.toggle('on', m === 'move');
+  $('m-arrow').classList.toggle('on', m === 'arrow');
+  $('m-zone').classList.toggle('on', m === 'zone');
+  pinsLayer.style.pointerEvents = (m === 'move') ? 'auto' : 'none';
+  pinsLayer.style.display = (m === 'move') ? 'block' : 'none';
+  canvas.style.pointerEvents = (m === 'move') ? 'none' : 'auto';
+  canvas.style.cursor = (m === 'move') ? 'default' : 'crosshair';
+  if (m !== 'move'){ drawing = false; temp = null; redraw(); }
+  toast(m === 'move' ? 'Spieler verschieben' : (m === 'arrow' ? 'Überzug / Laufwege: vom Start- zum Zielpunkt ziehen' : 'Zonenbereich aufziehen'));
+}
+$('m-move').onclick = function(){ setMode('move'); };
+$('m-arrow').onclick = function(){ setMode('arrow'); };
+$('m-zone').onclick = function(){ setMode('zone'); };
+$('m-loeschen').onclick = function(){
+  if (!shapes.length){ toast('Keine Zeichnung vorhanden'); return; }
+  shapes.pop();
+  saveState();
+  redraw();
+  toast('Letztes Element entfernt');
+};
+$('btn-flip').onclick = function(){
+  pins.forEach(function(p){ p.x = Math.round((100 - p.x) * 10) / 10; });
+  shapes.forEach(function(s){
+    const nx1 = Math.round((100 - s.x1) * 10) / 10, nx2 = Math.round((100 - s.x2) * 10) / 10;
+    s.x1 = Math.min(nx1, nx2); s.x2 = Math.max(nx1, nx2); s.y1 = s.y1; s.y2 = s.y2;
+  });
+  saveState();
+  redraw();
+  renderPins();
+  toast('Angriffsrichtung gedreht');
+};
+
+/* ---------- Aufbau-Funktionen ---------- */
+/* Kollisionslöser: Pins, die zu nah an anderen liegen, werden auseinander-
+   geschoben (Abstoßrichtung vom nächsten Nachbarn, plus vertikaler Ausweich-
+   komponente für zentrale Kollisionen wie der Mittelpunkt-Spiegelfall). */
+function resolveCollisions(){
+  pushResolve(pins, 11.2, 0.64);
+}
+function pushResolve(list, minD, yg){
+  const w = function(p){ /* sortiere: Gegner zuerst (die weichen aus) */
+    return p.home ? 1 : 0;
+  };
+  for (let g = 0; g < 60; g++){
+    let moved = false;
+    const order = list.slice().sort(function(a, b){ return w(a) - w(b); });
+    for (let ii = 0; ii < order.length; ii++){
+      const p = order[ii];
+      /* nächsten Nachbarn finden */
+      let best = null, bestD = 1e9;
+      list.forEach(function(q){
+        if (q === p) return;
+        const d = Math.hypot(q.x - p.x, (q.y - p.y) * yg);
+        if (d < bestD){ bestD = d; best = q; }
+      });
+      if (best && bestD < minD){
+        if (best.home && !p.home){
+          /* p weicht vollständig aus */
+          let dx = p.x - best.x, dy = (p.y - best.y) * yg;
+          const L = Math.hypot(dx, dy) || 1;
+          dx /= L; dy /= L;
+          let nx = p.x, ny = p.y;
+          const step = 2.5;
+          /* bevorzugt in Ballfrei-Richtung: bei zentraler Lage vertikal ausweichen */
+          if (Math.abs(dx) < 0.35){ ny = Math.max(6, Math.min(94, p.y + (p.y >= best.y ? step : -step))); }
+          else { nx = Math.max(4, Math.min(96, p.x + dx * step)); }
+          if (nx === p.x && ny === p.y){
+            nx = Math.max(4, Math.min(96, p.x + dx * step));
+            ny = Math.max(6, Math.min(94, p.y + dy * step));
+          }
+          p.x = Math.round(nx * 10) / 10;
+          p.y = Math.round(ny * 10) / 10;
+          moved = true;
+        } else {
+          /* beide weichen gegenseitig aus */
+          let dx = p.x - best.x, dy = (p.y - best.y) * yg;
+          let L = Math.hypot(dx, dy) || 1;
+          dx /= L; dy /= L;
+          const step = 1.8;
+          let nx = Math.max(4, Math.min(96, p.x + dx * step));
+          let ny = Math.max(6, Math.min(94, p.y + dy * step * 0.64));
+          if (nx === p.x && ny === p.y){ /* in der Ecke: vertikal */
+            ny = Math.max(6, Math.min(94, p.y + (p.y >= 50 ? -step : step) * 0.64));
+          }
+          p.x = Math.round(nx * 10) / 10;
+          p.y = Math.round(ny * 10) / 10;
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+}
+function setFormation(key, label){
+  const def = FORM[key];
+  if (!def) return;
+  const oppOld = pins.filter(function(p){ return !p.home; });
+  pins = def.map(function(row){
+    return { label:String(row[0]), home:true, gk:row[0] === 1, x:row[1], y:row[2] };
+  });
+  let oppPins;
+  if (oppOld.length === 0){
+    /* Gegner erstmals aufsetzen: gespiegelt + vertikal geflippt, TW fix tief */
+    oppPins = def.map(function(row){
+      if (row[0] === 1) return { label:'1', home:false, gk:true, x:94, y:50 };
+      return { label:'✕', home:false, gk:false, x:100 - row[1], y:100 - row[2] };
+    });
+  } else {
+    oppPins = oppOld;
+  }
+  pins = pins.concat(oppPins);
+  resolveCollisions();
+  formationLabel = label || key;
+  $('header-sub').textContent = '2. Klasse Süd · Sportplatz Pinsdorf · ' + formationLabel;
+  saveState();
+  renderPins();
+}
+$('formation').onchange = function(e){
+  const v = e.target.value;
+  if (!v) return;
+  setFormation(v, v);
+  setMode('move'); /* Pins sofort sichtbar — Nutzer sieht die Nummern gleich */
+  toast('Formation ' + v + ' aufgesetzt');
+  e.target.value = '';
+};
+function loadStandard(name){
+  const s = STANDARDS[name];
+  if (!s) return;
+  pins = [];
+  shapes = [];
+  if (s.form && FORM[s.form]){
+    FORM[s.form].forEach(function(row){
+      if (pins.some(function(p){ return p.home && p.label === String(row[0]); })) return;
+      pins.push({ label:String(row[0]), home:true, gk:row[0] === 1, x:row[1], y:row[2] });
+    });
+    /* Vorlage ohne Gegner-Liste (z. B. Grundordnung): Gegner gespiegelt + geflippt dazu */
+    if (!(s.opp && s.opp.length)){
+      FORM[s.form].forEach(function(row){
+        if (row[0] === 1){
+          pins.push({ label:'1', home:false, gk:true, x:94, y:50 });
+        } else {
+          pins.push({ label:'✕', home:false, gk:false, x:100 - row[1], y:100 - row[2] });
+        }
+      });
+    }
+  }
+  (s.home || []).forEach(function(row){
+    if (pins.some(function(p){ return p.home && p.label === String(row[0]); })) return;
+    pins.push({ label:String(row[0]), home:true, gk:false, x:row[1], y:row[2] });
+  });
+  (s.opp || []).forEach(function(oo){
+    pins.push({ label:'✕', home:false, gk:false, x:oo[0], y:oo[1] });
+  });
+  (s.arrows || []).forEach(function(a){
+    shapes.push({ t:'arrow', x1:a[0], y1:a[1], x2:a[2], y2:a[3] });
+  });
+  (s.zones || []).forEach(function(z){
+    shapes.push({ t:'zone', x1:z[0], y1:z[1], x2:z[2], y2:z[3] });
+  });
+  /* sanfter Löser (8,8 %): Eckstoß-Nähe bleibt, Überlappung stirbt */
+  pushResolve(pins, 8.8, 0.64);
+  formationLabel = name;
+  descNote = s.desc || '';
+  $('header-sub').textContent = '2. Klasse Süd · Sportplatz Pinsdorf · ' + name;
+  saveState();
+  renderPins();
+  redraw();
+  toast('Geladen: ' + name);
+}
+$('btn-standards').onclick = function(){
+  const box = $('msd-list');
+  box.innerHTML = '';
+  Object.keys(STANDARDS).forEach(function(k){
+    const b = document.createElement('button');
+    b.className = 'bigbtn ghost';
+    b.style.marginTop = '10px';
+    b.textContent = k;
+    b.onclick = function(){
+      $('modal-standards').classList.remove('on');
+      loadStandard(k);
+    };
+    box.appendChild(b);
+    const d = document.createElement('div');
+    d.style.cssText = 'font-size:11px;color:var(--grau);margin-top:5px;line-height:1.45';
+    d.textContent = STANDARDS[k].desc || '';
+    box.appendChild(d);
+  });
+  $('modal-standards').classList.add('on');
+};
+$('msd-cancel').onclick = function(){ $('modal-standards').classList.remove('on'); };
+$('btn-reset-feld').onclick = function(){
+  pins = [];
+  shapes = [];
+  descNote = '';
+  formationLabel = '';
+  setFormation('4-2-3-1', 'Grundordnung 4-2-3-1');
+  renderPins();
+  redraw();
+  toast('Feld zurückgesetzt');
+};
+
+/* ---------- Szenarien speichern/laden ---------- */
+$('btn-sc-save').onclick = function(){
+  $('ms-name').value = '';
+  $('modal-save').classList.add('on');
+};
+$('ms-cancel').onclick = function(){ $('modal-save').classList.remove('on'); };
+$('ms-ok').onclick = function(){
+  const n = $('ms-name').value.trim();
+  if (!n){ toast('Bitte Namen eingeben'); return; }
+  const all = store('ask_szenarien') || {};
+  all[n] = { pins: JSON.parse(JSON.stringify(pins)), shapes: JSON.parse(JSON.stringify(shapes)), desc: descNote, form: formationLabel };
+  store('ask_szenarien', all);
+  $('modal-save').classList.remove('on');
+  toast('Gespeichert: ' + n);
+};
+$('btn-sc-load').onclick = function(){
+  const all = store('ask_szenarien') || {};
+  const box = $('ml-list');
+  box.innerHTML = '';
+  const keys = Object.keys(all);
+  if (!keys.length){
+    const d = document.createElement('div');
+    d.textContent = 'Noch keine Szenarien gespeichert.';
+    d.style.cssText = 'color:var(--grau);font-size:12.5px;margin-bottom:8px';
+    box.appendChild(d);
+  }
+  keys.forEach(function(k){
+    const li = document.createElement('div');
+    li.className = 'listen-item';
+    li.style.cssText = 'display:flex;gap:8px;align-items:center;padding:8px 2px;border-bottom:1px solid var(--linie)';
+    const name = document.createElement('span');
+    name.textContent = k;
+    name.style.cssText = 'flex:1;font-weight:700;font-size:13px';
+    const bLoad = document.createElement('button');
+    bLoad.className = 'del';
+    bLoad.textContent = 'Laden';
+    bLoad.onclick = function(){
+      const s = all[k];
+      pins = JSON.parse(JSON.stringify(s.pins || []));
+      shapes = JSON.parse(JSON.stringify(s.shapes || []));
+      descNote = s.desc || '';
+      formationLabel = s.form || k;
+      $('header-sub').textContent = '2. Klasse Süd · Sportplatz Pinsdorf · ' + formationLabel;
+      $('modal-load').classList.remove('on');
+      saveState();
+      renderPins();
+      redraw();
+      toast('Geladen: ' + k);
+    };
+    const bDel = document.createElement('button');
+    bDel.className = 'del';
+    bDel.textContent = '✕';
+    bDel.onclick = function(){
+      delete all[k];
+      store('ask_szenarien', all);
+      li.remove();
+      toast('Gelöscht: ' + k);
+    };
+    li.appendChild(name); li.appendChild(bLoad); li.appendChild(bDel);
+    box.appendChild(li);
+  });
+  $('modal-load').classList.add('on');
+};
+$('ml-cancel').onclick = function(){ $('modal-load').classList.remove('on'); };
+
+/* ---------- Persistenz Taktik ---------- */
+function saveState(){
+  store('ask_taktik', { pins: pins, shapes: shapes, desc: descNote, form: formationLabel, sub: $('header-sub').textContent });
+}
+function restoreState(){
+  const s = store('ask_taktik');
+  if (s && s.pins && s.pins.length){
+    pins = s.pins;
+    shapes = s.shapes || [];
+    descNote = s.desc || '';
+    formationLabel = s.form || '';
+    if (s.sub) $('header-sub').textContent = s.sub;
+    renderPins();
+    redraw();
+    return true;
+  }
+  return false;
+}
+
+/* ---------- PNG-Export ---------- */
+function drawCrest(c, cx, cy, w){
+  const h = w * 1.08;
+  c.save();
+  c.beginPath();
+  c.moveTo(cx, cy);
+  c.lineTo(cx + w, cy);
+  c.lineTo(cx + w, cy + h * 0.55);
+  c.quadraticCurveTo(cx + w, cy + h * 0.84, cx + w / 2, cy + h);
+  c.quadraticCurveTo(cx, cy + h * 0.84, cx, cy + h * 0.55);
+  c.closePath();
+  c.fillStyle = '#ffffff';
+  c.fill();
+  c.lineWidth = Math.max(3, w * 0.055);
+  c.strokeStyle = '#111114';
+  c.stroke();
+  c.restore();
+}
+$('btn-export').onclick = function(){
+  const c2 = document.createElement('canvas');
+  if (typeof c2.getContext !== 'function'){ toast('Export im Browser öffnen'); return; }
+  const W = 1560, H = 1120;
+  c2.width = W; c2.height = H;
+  const x = c2.getContext('2d');
+  if (!x){ toast('Export nicht möglich'); return; }
+  /* Rahmen */
+  x.fillStyle = '#111114'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#cc0033'; x.fillRect(0, 0, W, 92);
+  x.fillStyle = '#ffffff';
+  x.font = '800 36px -apple-system,Segoe UI,Roboto,Arial,sans-serif';
+  x.fillText('FC ASKÖ Pinsdorf — Taktiktafel', 48, 56);
+  x.font = '600 20px -apple-system,Segoe UI,Roboto,Arial,sans-serif';
+  x.fillStyle = 'rgba(255,255,255,.85)';
+  try{
+    x.fillText(new Date().toLocaleDateString('de-AT', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }), 48, 80);
+  }catch(e){ x.fillText('Taktiktafel', 48, 80); }
+  drawCrest(x, W - 118, 16, 86);
+  /* Feld */
+  const FX = 64, FY = 134, FW2 = W - 128, FH2 = H - 220;
+  x.fillStyle = '#14612e';
+  x.fillRect(FX, FY, FW2, FH2);
+  x.save();
+  x.beginPath(); x.rect(FX, FY, FW2, FH2); x.clip();
+  for (let i = 0; i < 10; i++){
+    if (i % 2 === 0){ x.fillStyle = 'rgba(255,255,255,.03)'; x.fillRect(FX, FY + FH2 / 10 * i, FW2, FH2 / 10); }
+  }
+  x.restore();
+  x.strokeStyle = 'rgba(255,255,255,.85)';
+  x.lineWidth = 3;
+  x.strokeRect(FX + 16, FY + 16, FW2 - 32, FH2 - 32);
+  x.beginPath(); x.moveTo(FX + FW2 / 2, FY + 16); x.lineTo(FX + FW2 / 2, FY + FH2 - 16); x.stroke();
+  x.beginPath(); x.arc(FX + FW2 / 2, FY + FH2 / 2, FH2 / 9.6, 0, Math.PI * 2); x.stroke();
+  x.strokeRect(FX + 16, FY + FH2 * 0.308, (FW2 - 32) * 0.165, FH2 * 0.384);
+  x.strokeRect(FX + FW2 - 16 - (FW2 - 32) * 0.165, FY + FH2 * 0.308, (FW2 - 32) * 0.165, FH2 * 0.384);
+  x.strokeRect(FX + 16, FY + FH2 * 0.423, (FW2 - 32) * 0.055, FH2 * 0.155);
+  x.strokeRect(FX + FW2 - 16 - (FW2 - 32) * 0.055, FY + FH2 * 0.423, (FW2 - 32) * 0.055, FH2 * 0.155);
+  /* Zonen + Pfeile */
+  shapes.forEach(function(s){
+    if (s.t !== 'zone') return;
+    x.save();
+    x.fillStyle = 'rgba(255,255,255,.17)';
+    x.strokeStyle = 'rgba(255,255,255,.8)';
+    x.lineWidth = 2.4;
+    x.setLineDash([8, 5]);
+    x.beginPath();
+    x.rect(FX + 16 + s.x1 / 100 * (FW2 - 32), FY + 16 + s.y1 / 100 * (FH2 - 32), (s.x2 - s.x1) / 100 * (FW2 - 32), (s.y2 - s.y1) / 100 * (FH2 - 32));
+    x.fill(); x.stroke();
+    x.restore();
+  });
+  shapes.forEach(function(s){
+    if (s.t !== 'arrow') return;
+    drawArrowShape(x, {
+      x1: FX + 16 + s.x1 / 100 * (FW2 - 32),
+      y1: FY + 16 + s.y1 / 100 * (FH2 - 32),
+      x2: FX + 16 + s.x2 / 100 * (FW2 - 32),
+      y2: FY + 16 + s.y2 / 100 * (FH2 - 32)
+    }, '#ff4d6e', 5);
+  });
+  /* Pins */
+  pins.forEach(function(p){
+    const r = 27;
+    const sx = FX + 16 + p.x / 100 * (FW2 - 32);
+    const sy = FY + 16 + p.y / 100 * (FH2 - 32);
+    const g = x.createRadialGradient(sx - r / 2.6, sy - r / 2.6, 2, sx, sy, r);
+    if (p.home){ g.addColorStop(0, '#ff5070'); g.addColorStop(1, '#8f0024'); }
+    else { g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#c2c2c2'); }
+    x.beginPath(); x.arc(sx, sy, r, 0, Math.PI * 2);
+    x.fillStyle = g; x.fill();
+    x.lineWidth = 2.4;
+    x.strokeStyle = p.gk ? '#ffd23e' : (p.home ? 'rgba(255,255,255,.5)' : 'rgba(17,17,20,.5)');
+    x.stroke();
+    x.font = '800 24px -apple-system,Segoe UI,Roboto,Arial,sans-serif';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    if (p.home){ x.fillStyle = '#ffffff'; }
+    else { x.fillStyle = '#16161a'; }
+    x.fillText(p.label, sx, sy + 1);
+  });
+  x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+  /* Info unten */
+  x.fillStyle = '#ffd23e';
+  x.font = '700 21px -apple-system,Segoe UI,Roboto,Arial,sans-serif';
+  let ty = H - 46;
+  if (descNote){ x.fillText(descNote, FX, ty); ty -= 30; }
+  x.fillStyle = 'rgba(255,255,255,.6)';
+  x.font = '600 19px -apple-system,Segoe UI,Roboto,Arial,sans-serif';
+  x.fillText((formationLabel || 'Grundordnung') + ' · Rot = Pinsdorf, Weiß = Gegner', FX, ty);
+  const url = c2.toDataURL('image/png');
+  $('expimg').src = url;
+  try{
+    const lnk = document.createElement('a');
+    lnk.href = url;
+    lnk.download = 'taktiktafel-pinsdorf.png';
+    lnk.style.display = 'none';
+    document.body.appendChild(lnk);
+    lnk.click();
+    setTimeout(function(){ lnk.remove(); }, 300);
+  }catch(e){}
+  $('expbar').classList.add('on');
+};
+$('exp-close').onclick = function(){ $('expbar').classList.remove('on'); };
+
+/* ============================================================
+   TRAINING
+   ============================================================ */
+let blocks = [];
+try{ const b = store('ask_blocks'); if (Array.isArray(b)) blocks = b; }catch(e){}
+let noteTxt = store('ask_note') || '';
+
+function renderBlocks(){
+  const ul = $('t-list');
+  ul.innerHTML = '';
+  blocks.forEach(function(b, i){
+    const li = document.createElement('li');
+    const kd = document.createElement('span');
+    kd.className = 'kd';
+    const bEl = document.createElement('b');
+    bEl.textContent = (i + 1) + '. ' + b.t;
+    const sm = document.createElement('small');
+    sm.textContent = b.m + ' Minuten';
+    kd.appendChild(bEl); kd.appendChild(sm);
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.textContent = '✕';
+    del.onclick = function(){
+      blocks.splice(i, 1);
+      store('ask_blocks', blocks);
+      renderBlocks();
+    };
+    li.appendChild(kd); li.appendChild(del);
+    ul.appendChild(li);
+  });
+  const mins = blocks.reduce(function(s, b){ return s + b.m; }, 0);
+  $('t-sum').textContent = blocks.length ? (blocks.length + ' Blöcke · gesamt ' + mins + ' Minuten') : 'Noch keine Blöcke — oben eine Übung eintragen.';
+}
+$('t-add').onclick = function(){
+  const t = $('t-titel').value.trim();
+  if (!t){ toast('Titel bitte eintragen'); return; }
+  blocks.push({ t: t, m: parseInt($('t-dauer').value, 10) || 10 });
+  store('ask_blocks', blocks);
+  $('t-titel').value = '';
+  renderBlocks();
+  toast('Block aufgenommen');
+};
+/* Timer */
+let tVal = 600, tRun = false, tTimer = null, planIdx = -1;
+function fmtTime(s){ return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60); }
+function paintTimer(){
+  $('timer-val').textContent = fmtTime(tVal);
+}
+function stepTimer(){
+  if (tVal <= 0){ stopTimer(); return; }
+  tVal--;
+  paintTimer();
+  if (tVal === 0){
+    if (planIdx >= 0 && planIdx < blocks.length - 1){
+      planIdx++;
+      const b = blocks[planIdx];
+      $('timer-label').textContent = b.t;
+      tVal = b.m * 60;
+      paintTimer();
+      toast('Block fertig — gleich weiter: ' + b.t);
+      /* kurzer Übergangsstopp: läuft automatisch weiter? Nein — bewährt: Auto-Weiter */
+      startTimer();
+    } else {
+      stopTimer();
+      if (planIdx >= 0){
+        $('timer-label').textContent = 'Training abgeschlossen';
+        planIdx = -1;
+        toast('Trainingsplan abgeschlossen 💪');
+      } else {
+        toast('Zeit abgelaufen — Übung wechseln');
+      }
+    }
+  }
+}
+function startTimer(){
+  if (tRun) return;
+  tRun = true;
+  $('timer-go').textContent = '⏸ Pause';
+  tTimer = setInterval(stepTimer, 1000);
+}
+function stopTimer(){
+  tRun = false;
+  clearInterval(tTimer);
+  $('timer-go').textContent = '▶ Start';
+}
+$('timer-go').onclick = function(){
+  if (tRun){ stopTimer(); return; }
+  if ($('timer-label').textContent === 'Nächste Übung' || tVal === 0){
+    const m = Math.max(1, Math.min(90, parseInt($('timer-min').value, 10) || 10));
+    tVal = m * 60;
+    paintTimer();
+  }
+  planIdx = -1;
+  startTimer();
+};
+$('timer-reset').onclick = function(){
+  stopTimer();
+  planIdx = -1;
+  const m = Math.max(1, Math.min(90, parseInt($('timer-min').value, 10) || 10));
+  tVal = m * 60;
+  paintTimer();
+  $('timer-label').textContent = 'Nächste Übung';
+};
+$('t-plan-start').onclick = function(){
+  if (!blocks.length){ toast('Erst Blöcke hinzufügen'); return; }
+  stopTimer();
+  planIdx = 0;
+  $('timer-label').textContent = blocks[0].t;
+  tVal = blocks[0].m * 60;
+  paintTimer();
+  showTab('training');
+  startTimer();
+  toast('Plan läuft: ' + blocks[0].t);
+  /* Timer-Karte sehen: scroll top */
+  try{ document.querySelector('#tab-training .scroll').scrollTop = 0; }catch(e){}
+};
+$('t-copy').onclick = function(){
+  if (!blocks.length){ toast('Noch keine Blöcke'); return; }
+  let lines = [];
+  let d = '';
+  try{ d = new Date().toLocaleDateString('de-AT'); }catch(e){}
+  lines.push('Trainingsplan Pinsdorf — ' + d);
+  lines.push('----------------------------');
+  blocks.forEach(function(b, i){ lines.push((i + 1) + '. ' + b.t + ' — ' + b.m + ' Min'); });
+  const total = blocks.reduce(function(s, b){ return s + b.m; }, 0);
+  lines.push('Gesamt: ' + total + ' Min');
+  if (noteTxt.trim()){ lines.push(''); lines.push('Notizen: ' + noteTxt.trim()); }
+  copyText(lines.join('\n'), 'Plan kopiert — einfügen mit langem Druck');
+};
+$('t-notiz').addEventListener('input', function(e){
+  noteTxt = e.target.value;
+  store('ask_note', noteTxt);
+});
+
+/* ============================================================
+   SPIELTAG
+   ============================================================ */
+let events = [];
+try{ const e2 = store('ask_events'); if (Array.isArray(e2)) events = e2; }catch(e2){}
+let sideToggle = 'Pinsdorf';
+let lastAction = 'cha';
+const EV_LABEL = { torh: 'Tor Heim', torg: 'Tor Gast', gelb: 'Gelbe Karte', rot: 'Rote Karte', wex: 'Wechsel', cha: 'Chance' };
+let scoreH = 0, scoreG = 0;
+
+function paintScore(){
+  scoreH = 0; scoreG = 0;
+  events.forEach(function(e){
+    if (e.ev === 'torh') scoreH++;
+    if (e.ev === 'torg') scoreG++;
+  });
+  $('st-score').textContent = scoreH + ' : ' + scoreG;
+}
+function renderEvents(){
+  const ul = $('st-list');
+  ul.innerHTML = '';
+  events.forEach(function(e, i){
+    const li = document.createElement('li');
+    const mn = document.createElement('span');
+    mn.className = 'min';
+    mn.textContent = e.m ? (e.m + '.') : '—';
+    const et = document.createElement('span');
+    et.className = 'et';
+    et.textContent = EV_LABEL[e.ev] + (e.s ? ' · ' + e.s : '') + (e.w ? ' (' + e.w + ')' : '');
+    const ex = document.createElement('button');
+    ex.className = 'ex';
+    ex.textContent = '✕';
+    ex.onclick = function(){
+      events.splice(i, 1);
+      store('ask_events', events);
+      paintScore();
+      renderEvents();
+    };
+    li.appendChild(mn); li.appendChild(et); li.appendChild(ex);
+    ul.appendChild(li);
+  });
+  $('st-empty').style.display = events.length ? 'none' : 'block';
+}
+function addEvent(){
+  const evKey = lastAction;
+  const m = parseInt($('st-min').value, 10) || 0;
+  const w = $('st-who').value.trim();
+  events.push({ ev: evKey, m: m, w: w, s: sideToggle });
+  store('ask_events', events);
+  $('st-who').value = '';
+  $('st-min').value = '';
+  paintScore();
+  renderEvents();
+  toast('Notiert: ' + EV_LABEL[evKey] + (m ? ' in der ' + m + '.' : ''));
+}
+$('st-add').onclick = addEvent;
+[['scb-torh','torh'],['scb-torg','torg'],['scb-gelb','gelb'],['scb-rot','rot'],['scb-wex','wex'],['scb-cha','cha']].forEach(function(pair){
+  const el = $(pair[0]);
+  el.onclick = function(){
+    lastAction = pair[1];
+    document.querySelectorAll('.scbtn').forEach(function(b){ b.classList.remove('on'); });
+    el.classList.add('on');
+    setTimeout(function(){ el.classList.remove('on'); }, 500);
+    toast('Gewählt: ' + EV_LABEL[lastAction] + ' — dann „＋" drücken');
+  };
+});
+$('#seg-side') && null;
+$('seg-heim').onclick = function(){ sideToggle = 'Pinsdorf'; $('seg-heim').classList.add('on'); $('seg-gast').classList.remove('on'); };
+$('seg-gast').onclick = function(){ sideToggle = 'Gegner'; $('seg-gast').classList.add('on'); $('seg-heim').classList.remove('on'); };
+$('st-sh').onclick = function(){
+  events.push({ ev:'torh', m: parseInt($('st-min').value, 10) || 0, w:'', s:'Pinsdorf' });
+  store('ask_events', events); paintScore(); renderEvents();
+  toast('Tor für Pinsdorf');
+};
+$('st-sg').onclick = function(){
+  events.push({ ev:'torg', m: parseInt($('st-min').value, 10) || 0, w:'', s:'Gegner' });
+  store('ask_events', events); paintScore(); renderEvents();
+  toast('Tor für den Gegner');
+};
+$('st-copy').onclick = function(){
+  const h = $('st-heim').value.trim() || 'FC ASKÖ Pinsdorf';
+  const g = $('st-gast').value.trim() || 'Gegner';
+  let lines = [];
+  let d = '';
+  try{ d = new Date().toLocaleDateString('de-AT'); }catch(e){}
+  lines.push('Spielbericht — ' + d);
+  lines.push(h + '  ' + scoreH + ' : ' + scoreG + '  ' + g);
+  if (events.length){
+    lines.push('');
+    lines.push('Ereignisse:');
+    events.forEach(function(e){
+      const who = e.w ? (isNumLike(e.w) ? ' (Nr. ' + e.w + ')' : ' (' + e.w + ')') : '';
+      lines.push('— ' + (e.m ? e.m + '.' : '') + EV_LABEL[e.ev] + (e.s ? ' · ' + e.s : '') + who);
+    });
+  }
+  copyText(lines.join('\n'), 'Spielbericht kopiert');
+};
+function isNumLike(s){ return /^[0-9]{1,2}$/.test(s); }
+$('st-clear').onclick = function(){
+  if (!events.length){ toast('Alles leer'); return; }
+  events = [];
+  store('ask_events', events);
+  paintScore();
+  renderEvents();
+  toast('Spieltag zurückgesetzt');
+};
+
+
+/* ============================================================
+   VEREIN — Daten & Statistik (Snapshot + Online-Refresh)
+   ============================================================ */
+const VEREIN_SNAPSHOT = {"stand": "09.10.2026", "tabelle": [[1, "SK Polar Neukirchen/A.", 8, 7, 1, 0, "31:7", 24, 22], [2, "Union Regau", 8, 6, 0, 2, "24:12", 12, 18], [3, "TSV Timelkam", 8, 4, 4, 0, "25:11", 14, 16], [4, "Kammer 1b", 8, 5, 0, 3, "17:14", 3, 15], [5, "ASKÖ Ohlsdorf Juniors", 8, 4, 1, 3, "23:17", 6, 13], [6, "ASKÖ Ebensee", 8, 4, 1, 3, "14:13", 1, 13], [7, "ATSV Timelkam", 8, 4, 1, 3, "24:21", 3, 13], [8, "SV Aurach", 8, 4, 0, 4, "23:18", 5, 12], [9, "Grünau/Pettenbach 1b", 8, 3, 1, 4, "15:18", -3, 10], [10, "ATSV Rüstorf", 8, 3, 1, 4, "15:20", -5, 10], [11, "ASKÖ Raika Gosau", 8, 3, 0, 5, "14:27", -13, 9], [12, "Gschwandt 1b", 8, 2, 1, 5, "10:22", -12, 7], [13, "FC ASKÖ Pinsdorf", 8, 1, 1, 6, "8:18", -10, 4], [14, "SV Bad Ischl 1b", 8, 0, 0, 8, "5:30", -25, 0]], "ergebnisse": [[1, "16.08.2026", "Kammer 1b", "FC ASKÖ Pinsdorf", "2:1 (2:0)", "(2:0)", "N"], [2, "23.08.2026", "FC ASKÖ Pinsdorf", "ASKÖ Ebensee", "1:1 (1:1)", "(1:1)", "U"], [3, "29.08.2026", "FC ASKÖ Pinsdorf", "Gschwandt 1b", "2:3 (0:1)", "(0:1)", "N"], [4, "05.09.2026", "SK Polar Neukirchen/A…", "FC ASKÖ Pinsdorf", "3:1 (2:0)", "(2:0)", "N"], [5, "13.09.2026", "FC ASKÖ Pinsdorf", "Union Regau", "0:3 (0:0)", "(0:0)", "N"], [6, "19.09.2026", "ATSV Timelkam", "FC ASKÖ Pinsdorf", "3:1 (2:0)", "(2:0)", "N"], [7, "27.09.2026", "FC ASKÖ Pinsdorf", "Grünau/Pettenbach 1b", "1:3 (0:2)", "(0:2)", "N"], [8, "04.10.2026", "SV Bad Ischl 1b", "FC ASKÖ Pinsdorf", "0:1 (0:0)", "(0:0)", "S"]], "fixtures": [[9, "10.10.2026", "FC ASKÖ Pinsdorf", "ATSV Rüstorf", "16:00"], [10, "16.10.2026", "SV Aurach", "FC ASKÖ Pinsdorf", "19:30"], [11, "24.10.2026", "FC ASKÖ Pinsdorf", "ASKÖ Ohlsdorf Juniors", "14:30"], [12, "31.10.2026", "ASKÖ Raika Gosau", "FC ASKÖ Pinsdorf", "14:30"], [13, "07.11.2026", "FC ASKÖ Pinsdorf", "TSV Timelkam", "14:00"], [14, "21.03.2027", "FC ASKÖ Pinsdorf", "Kammer 1b", "15:30"], [15, "29.03.2027", "ASKÖ Ebensee", "FC ASKÖ Pinsdorf", "16:30"], [16, "04.04.2027", "Gschwandt 1b", "FC ASKÖ Pinsdorf", "16:30"], [17, "11.04.2027", "FC ASKÖ Pinsdorf", "SK Polar Neukirchen/A…", "16:30"], [18, "18.04.2027", "Union Regau", "FC ASKÖ Pinsdorf", "16:30"], [19, "25.04.2027", "FC ASKÖ Pinsdorf", "ATSV Timelkam", "16:30"], [20, "02.05.2027", "Grünau/Pettenbach 1b", "FC ASKÖ Pinsdorf", "17:00"], [21, "09.05.2027", "FC ASKÖ Pinsdorf", "SV Bad Ischl 1b", "17:00"], [22, "17.05.2027", "ATSV Rüstorf", "FC ASKÖ Pinsdorf", "17:00"], [23, "23.05.2027", "FC ASKÖ Pinsdorf", "SV Aurach", "17:00"], [24, "30.05.2027", "ASKÖ Ohlsdorf Juniors", "FC ASKÖ Pinsdorf", "17:00"], [25, "06.06.2027", "FC ASKÖ Pinsdorf", "ASKÖ Raika Gosau", "17:00"], [26, "13.06.2027", "TSV Timelkam", "FC ASKÖ Pinsdorf", "17:00"]], "kader": {"Tor": [{"nr": "1", "name": "Adnan Ajkic"}, {"nr": "23", "name": "Matthias Kreuzeder"}], "Verteidigung": [{"nr": "", "name": "Sebastion Fechete"}, {"nr": "", "name": "Anes Tulic"}, {"nr": "3", "name": "Adil Bradaric"}, {"nr": "12", "name": "Felix Winterbacher"}, {"nr": "19", "name": "Peter Rastinger"}, {"nr": "20", "name": "Martin Blenk"}, {"nr": "21", "name": "Stefan Puster"}], "Mittelfeld": [{"nr": "", "name": "Dominik Schmid"}, {"nr": "5", "name": "Ismir Jamakovic"}, {"nr": "7", "name": "Branislav Panic"}, {"nr": "8", "name": "Armin Hrustanovic"}, {"nr": "18", "name": "Elvis Bradaric"}, {"nr": "24", "name": "Sebastian Bergthaler"}], "Sturm": [{"nr": "", "name": "Florian Riedler"}, {"nr": "", "name": "Danijel Topalovic"}, {"nr": "10", "name": "Mujo Ramakic"}, {"nr": "11", "name": "Noah Pamminger"}]}, "staff": [{"name": "Azur Jukic", "role": "Co-Trainer"}, {"name": "Ismir Jamakovic", "role": "Trainer"}], "bilanz": {"s": 1, "u": 1, "v": 6, "tp": 8, "tc": 18}, "form": "NUNNNNNS", "quelle": "Ligaportal (ticker.ligaportal.at, 2. Klasse Süd)"};
+
+let vereinData = (function(){
+  try{ const s = store('ask_verrein_data'); if (s && s.tabelle && s.tabelle.length) return s; }catch(e){}
+  return VEREIN_SNAPSHOT;
+})();
+let vShowNext = false;
+
+function vResClass(x){ return x === 'S' ? 'S' : (x === 'U' ? 'U' : 'N'); }
+
+function renderVerein(){
+  const d = vereinData;
+  /* Badges */
+  const me = (d.tabelle || []).find(function(t){ return /Pinsdorf/.test(t[1]); });
+  const rank = me ? me[0] : '—';
+  const bl = d.bilanz || {s:0,u:0,v:0,tp:0,tc:0};
+  const badges = [
+    [me ? String(me[8]) : '—', 'Punkte'], [me ? (me[0] + '.') : '—', 'Tabellenplatz'],
+    [bl.tp + ':' + bl.tc, 'Tore'], [bl.s + '-' + bl.u + '-' + bl.v, 'S-U-V'],
+    [(d.ergebnisse || []).length, 'Spiele'], [me ? me[7] : '—', 'Differenz']
+  ];
+  $('v-badges').innerHTML = badges.map(function(b){
+    return '<div class="v-badge"><b>' + esc(String(b[0])) + '</b><span>' + esc(b[1]) + '</span></div>';
+  }).join('');
+  /* Stativ-Chips */
+  $('v-stativ').innerHTML = [
+    'Saison 2026/27 · 2. Klasse Süd',
+    'Heim: Sportzentrum Pinsdorf',
+    'Stand: ' + (d.stand || '')
+  ].map(function(c){ return '<span class="v-chip">' + esc(c) + '</span>'; }).join('');
+  /* Form: letzte 5 + Platzhalter für kommende Spiele */
+  let fHtml = '<span class="flbl">Form:</span>';
+  const played = (d.ergebnisse || []).length;
+  const fraw = String(d.form || '');
+  const formTail = fraw.length >= 5 ? fraw.slice(-5) : fraw;
+  
+  for (let i = 0; i < 5; i++){
+    const c = formTail.charAt(i);
+    if (c === 'S' || c === 'U' || c === 'N') fHtml += '<div class="fdot ' + c + '">' + c + '</div>';
+    else fHtml += '<div class="fdot F">—</div>';
+  }
+  $('v-form').innerHTML = fHtml;
+  /* Tabelle */
+  const rows = (d.tabelle || []).slice().sort(function(a, b){ return a[0] - b[0]; });
+  let th = '<table class="v-tab"><thead><tr><th>#</th><th style="text-align:left">Team</th><th>S</th><th>G</th><th>U</th><th>V</th><th>T</th><th>±</th><th>PKT</th></tr></thead><tbody>';
+  rows.forEach(function(t){
+    const mine = /Pinsdorf/.test(t[1]);
+    th += '<tr' + (mine ? ' class="me"' : '') + '>' +
+      '<td class="tpos">' + t[0] + '</td>' +
+      '<td class="tname">' + esc(t[1]) + '</td>' +
+      '<td>' + t[2] + '</td><td>' + t[3] + '</td><td>' + t[4] + '</td><td>' + t[5] + '</td>' +
+      '<td>' + esc(t[6]) + '</td><td>' + (t[7] > 0 ? '+' + t[7] : t[7]) + '</td>' +
+      '<td class="vpt">' + t[8] + '</td></tr>';
+  });
+  th += '</tbody></table>';
+  $('v-tabellewrap').innerHTML = th;
+  $('v-quelle').textContent = 'Quelle: ' + (d.quelle || 'Ligaportal') + ' · Saison 2026/27 · in der Datei eingefroren am ' + (d.stand || '');
+  /* Spielplan */
+  const list = vShowNext ? (d.fixtures || []) : (d.ergebnisse || []);
+  let spHtml = '';
+  list.slice().sort(function(a, b){ return a[0] - b[0]; }).forEach(function(mrow){
+    if (vShowNext){
+      spHtml += '<div class="sp-row"><span class="rd">' + mrow[0] + '</span><span class="dt">' + esc(mrow[1]) + '</span>' +
+        '<span class="tm r">' + esc(mrow[2]) + '</span><span class="er G">' + esc(mrow[4] || '—:—') + '</span>' +
+        '<span class="tm">' + esc(mrow[3]) + '</span></div>';
+    } else {
+      const homeMe = /Pinsdorf/.test(mrow[2]);
+      const gh = homeMe ? mrow[6] : (mrow[6] === 'S' ? 'N' : (mrow[6] === 'N' ? 'S' : 'U'));
+      const cl = vResClass(gh);
+      const scoreMain = /Pinsdorf/.test(mrow[2]) || true;
+      const ms = String(mrow[4] || '').split(' ')[0];
+      spHtml += '<div class="sp-row"><span class="rd">' + mrow[0] + '</span><span class="dt">' + esc(mrow[1]) + '</span>' +
+        '<span class="tm r' + (homeMe ? ' me' : '') + '">' + esc(mrow[2]) + '</span>' +
+        '<span class="er ' + cl + '">' + esc(ms) + (mrow[5] ? ' <small>' + esc(mrow[5]) + '</small>' : '') + '</span>' +
+        '<span class="tm' + (!homeMe ? ' me' : '') + '">' + esc(mrow[3]) + '</span></div>';
+    }
+  });
+  $('v-spiele').innerHTML = spHtml || '<div class="v-quelle">Keine Daten.</div>';
+  /* Kader */
+  let kHtml = '';
+  const posOrder = [['Tor','Tor'],['Verteidigung','Abwehr'],['Mittelfeld','Mittelfeld'],['Sturm','Angriff']];
+  posOrder.forEach(function(pp){
+    const list = (d.kader || {})[pp[0]] || [];
+    if (!list.length) return;
+    kHtml += '<div class="kd-head">' + pp[1] + ' (' + list.length + ')</div>';
+    list.forEach(function(p){
+      kHtml += '<div class="kd-row"><div class="knr' + (p.nr ? '' : ' onr') + '">' + esc(p.nr || '▪') + '</div>' +
+        '<div class="knm">' + esc(p.name) + '</div><div class="kpos">' + esc(pp[1]) + '</div></div>';
+    });
+  });
+  $('v-kader').innerHTML = kHtml;
+  /* Staff */
+  const st = d.staff || [];
+  $('v-staff').innerHTML = '<div class="kd-head">Trainerstab</div>' + st.map(function(s){
+    return '<div class="staff-row"><span class="knm" style="flex:1">' + esc(s.name) + '</span><span class="srole">' + esc(s.role) + '</span></div>';
+  }).join('');
+}
+
+$('vtb-ergebnisse').onclick = function(){ vShowNext = false; $('vtb-ergebnisse').classList.add('on'); $('vtb-naechste').classList.remove('on'); renderVerein(); };
+$('vtb-naechste').onclick = function(){ vShowNext = true; $('vtb-naechste').classList.add('on'); $('vtb-ergebnisse').classList.remove('on'); renderVerein(); };
+
+/* Online-Refresh über r.jina.ai (Ligaportal-Textextraktion) */
+function vParseTable(text){
+  const out = [];
+  text.split('\n').forEach(function(line){
+    if (line.indexOf('team/show/') < 0) return;
+    /* Teamname aus [Name](…team/show/…) */
+    const op = line.lastIndexOf('[')
+    const clp = line.indexOf('](', op);
+    const cl = line.indexOf(']', op + 1);
+    let nm = '';
+    const nameStart = line.indexOf('[', line.indexOf('team/show/') > 0 ? 0 : 0);
+    /* robust: letzter Link-Block vor den Zahlen */
+    const urlAt = line.indexOf('team/show/');
+    let before = line.slice(0, urlAt);
+    const lb = before.lastIndexOf('[');
+    const rb = before.indexOf(']', lb);
+    if (lb >= 0 && rb > lb) nm = before.slice(lb + 1, rb);
+    if (!nm) return;
+    /* numerische Spalten: alle | |-Segmente, die reine Zahlen/X:Y sind, NACH dem Namenssegment */
+    const after = line.slice(rb + 1);
+    const cols = after.split('|').map(function(x){ return x.trim(); }).filter(function(x){
+      if (!x.length) return false;
+      return /^\d+$/.test(x) || /^\d+:\d+$/.test(x) || /^-\d+$/.test(x);
+    });
+    /* erwarte: [S, G, U, V, 'TV', Diff, P] = 7 */
+    if (cols.length < 7) return;
+    const nums = cols.slice(0, 7);
+    const S = parseInt(nums[0]); const G = parseInt(nums[1]); const U = parseInt(nums[2]); const V = parseInt(nums[3]);
+    const tv = nums[4];
+    const dif = parseInt(nums[5]); const pkt = parseInt(nums[6]);
+    const posInLine = line.slice(0, lb).match(/\|\s*(\d+)\s*$/);
+    const pos = posInLine ? parseInt(posInLine[1]) : (S + G + U + V);
+    if (isNaN(S) || tv.indexOf(':') < 0) return;
+    out.push([pos, String(nm), S, G, U, V, tv, isNaN(dif) ? 0 : dif, isNaN(pkt) ? 0 : pkt]);
+  });
+  return out;
+}
+function vParsePlan(text, wantResults){
+  const out = [];
+  let curDate = '', curRound = 0;
+  const dayNames = ['So.','Mo.','Di.','Mi.','Do.','Fr.','Sa.'];
+  text.split('\n').forEach(function(line){
+    /* Datum+Runde-Zeile (Markdown kann **fett**-Präfix haben) */
+    dayNames.forEach(function(dy){
+      const at = line.indexOf(dy);
+      if (at < 0 || at > 8) return;
+      if (curRound && curDate) return;
+      const dpat = line.match(/(\d{2}\.\d{2}\.\d{4})/);
+      const rf = line.indexOf('Runde');
+      if (dpat && rf > 0){
+        curDate = dpat[1];
+        let nr = '';
+        for (let ci = rf + 6; ci < line.length && line.charAt(ci) >= '0' && line.charAt(ci) <= '9' && nr.length < 3; ci++){ nr += line.charAt(ci); }
+        curRound = nr.length ? parseInt(nr, 10) : 0;
+      }
+    });
+    if (curDate){ /* Datum/Runde bleibt für Folgezeilen gesetzt */ }
+    /* Mannschafts-Links */
+    if (line.indexOf('ligaportal.at/mannschaft/') < 0) return;
+    const teams = [];
+    let from = 0;
+    while (true){
+      const op = line.indexOf('[', from);
+      if (op < 0) break;
+      const cl = line.indexOf('](', op);
+      if (cl < 0) break;
+      const urlend = line.indexOf(')', cl + 2);
+      if (urlend < 0) break;
+      const url = line.substring(cl + 2, urlend);
+      if (url.indexOf('ligaportal.at/mannschaft/') >= 0 && url.indexOf('/beitraege') < 0){
+        const name = line.substring(op + 1, cl);
+        if (name && name.indexOf('Image') < 0) teams.push(name);
+      }
+      from = urlend + 1;
+    }
+    if (teams.length < 2) return;
+    const home = teams[0], gast = teams[1];
+    /* Halbzeit- und Endstand */
+    const hz = line.indexOf('(');
+    let score = null, t1 = '';
+    /* Format: "| 2:1 (2:0) |" kommt als Klartext im Jina-Markdown meist als '2:1 (2:0)' vor */
+    const sm = scoreMatch(line);
+    if (sm){
+      const th = parseInt(sm[0], 10), tg = parseInt(sm[1], 10);
+      const pinsHeim = home.indexOf('Pinsdorf') >= 0;
+      const pf = pinsHeim ? th : tg, cf = pinsHeim ? tg : th;
+      const res = pf > cf ? 'S' : (pf === cf ? 'U' : 'N');
+      out.push([curRound, curDate, home, gast, sm[0] + ':' + sm[1], sm[2], res]);
+    } else if (!wantResults){
+      const time = timeMatch(line);
+      out.push([curRound, curDate, home, gast, time || '—:—']);
+    }
+  });
+  return out;
+}
+function scoreMatch(line){
+  /* "2:1 (2:0)" finden, ohne Backslash-Regex-Fallen: indexOf-Scan */
+  const open = line.indexOf(' (');
+  if (open < 1) return null;
+  /* vor der Klammer: X:Y */
+  let i = open - 1, digits = '';
+  while (i >= 0 && line.charAt(i) >= '0' && line.charAt(i) <= '9'){ digits = line.charAt(i) + digits; i--; }
+  if (i < 0 || line.charAt(i) !== ':' ) return null;
+  const tg = digits;
+  i--;
+  digits = '';
+  while (i >= 0 && line.charAt(i) >= '0' && line.charAt(i) <= '9'){ digits = line.charAt(i) + digits; i--; }
+  const th = digits;
+  if (!th || !tg || th.length > 2 || tg.length > 2) return null;
+  /* Halbzeit in Klammer */
+  const close = line.indexOf(')', open);
+  if (close < 0) return null;
+  const inner = line.substring(open + 2, close);
+  if (inner.indexOf(':') < 1) return null;
+  return [th, tg, '(' + inner + ')'];
+}
+function timeMatch(line){
+  /* Kickoff-Zeit "16:00" (kein Datum im Teamname) */
+  const parts = line.split('|');
+  for (let i = 0; i < parts.length; i++){
+    const p = parts[i].trim();
+    if (/^\d{1,2}:\d{2}$/.test(p) && p.indexOf('.') < 0) return p;
+  }
+  return null;
+}$('v-refresh').onclick = function(){
+  const info = $('v-refresh-info');
+  info.className = 'v-quelle';
+  info.textContent = 'Lige frische Daten …';
+  const BASE = 'https://r.jina.ai/https://ticker.ligaportal.at/mannschaft/223/askoe-pinsdorf/';
+  let done = 0, tabOk = 0, fixOk = 0, total = 2;
+  const neu = JSON.parse(JSON.stringify(vereinData));
+  $('v-refresh').disabled = true;
+  function finishOne(){
+    done++;
+    if (done < total) return;
+    $('v-refresh').disabled = false;
+    if (tabOk === 0 && fixOk === 0){
+      info.className = 'v-quelle err';
+      info.textContent = 'Aktualisierung fehlgeschlagen (kein Internet?) — eingebauter Stand bleibt.';
+      toast('Update fehlgeschlagen');
+      return;
+    }
+    neu.stand = new Date().toLocaleDateString('de-AT');
+    vereinData = neu;
+    store('ask_verrein_data', neu);
+    renderVerein();
+    let msg = [];
+    if (tabOk) msg.push('Tabelle');
+    if (fixOk) msg.push('Spielplan');
+    info.textContent = 'Aktualisiert (' + msg.join(' + ') + '): ' + neu.stand + ' · Ergebnisse/Kader sind im eingebauten Stand eingefroren.';
+    toast('Daten frisch geladen');
+  }
+  function grab(which){
+    try{
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', BASE + which, true);
+      xhr.timeout = 30000;
+      xhr.onload = function(){
+        try{
+          if (xhr.status !== 200){ finishOne(); return; }
+          if (which === 'tabelle'){
+            const t = vParseTable(xhr.responseText);
+            if (t.length >= 10){ neu.tabelle = t; tabOk = 1; }
+          } else if (which === 'spielplan'){
+            const fx = vParsePlan(xhr.responseText, false);
+            if (fx.length >= 6){ neu.fixtures = fx; fixOk = 1; }
+          }
+        }catch(e){}
+        finishOne();
+      };
+      xhr.onerror = function(){ finishOne(); };
+      xhr.ontimeout = function(){ finishOne(); };
+      xhr.send();
+    }catch(e){ finishOne(); }
+  }
+  grab('tabelle'); grab('spielplan');
+};
+
+
+/* ============================================================
+   TRAINERBOX
+   ============================================================ */
+const TIPPS = [
+  ['Vorbereitung gewinnt die ersten 15 Minuten','Vor dem Spiel klar sagen: Wo pressen wir ab? Wo liegt die Falle? Wenn jeder weiß, dass der Abstoß des Gegners das Signal ist, gewinnt die Mannschaft die Anfangsphase und hat Selbstvertrauen statt Stress.'],
+  ['Pressing nur auf Trigger','Nicht immer pressen — nur auf Auslöser: schlechter Erstkontakt des Gegners, Rückpass zum Torwart, Querpass durchs Zentrum, Blickweg vom Ball. Nach dem Trigger innerhalb 2 Sekunden zum Ball, sonst dranbleiben statt aufreißen.'],
+  ['Verteidigen von vorne','Der Stürmer blockt den Pass in die Mitte, das zwingt den Gegner auf die Außenbahn — dort schiebt die Kette nach. Ball-nah doppelt zudrücken, ballfern frei laufen lassen. Wer alles zudrücken will, öffnet sich selbst.'],
+  ['Standards sind Gratis-Tore','In der 2. Klasse Süd entscheiden oft 5–10 Tore über die Saison — ein gut geübter Eckball mit Staffelung und Schuss aus der zweiten Reihe bringt mehr als jedes Feintuning im Spielaufbau. Jede Woche eine Standard-Variante festigen statt zehn mal probieren.'],
+  ['Einwurf als Startschuss','Der lange Einwurf auf den Strafraum ist eine Chance wert wie ein Eckball. Zwei Werfer mit Ferngeschoss-Weite üben und eine feste Staffelung am Fünfmeterraum — Gegner bereiten sich auf Einwürfe fast nie vor.'],
+  ['Kondition: Intervalle statt Dauerlauf','Fußball heißt 20–30 Sprints à 2–8 Sekunden mit kurzen Pausen. 4 × 4 Minuten (schnell / locker wechselnd) bringen mehr als 45 Minuten Dauerlauf — und Spielerinnen und Spieler stehen besser im Duell.'],
+  ['Ballzirkulation mit Ziel','Zirkulation ohne Gegner ist Deko. Immer eine Aufgabe ankoppeln: nach 8 Pässen Spiel in die Tiefe, dann Diagonalwechsel der Seite — so entsteht Tempo statt Ballverlust am Stand.'],
+  ['Klartalk zur Halbzeit','Drei Sätze reichen: Was lief gut? Was machen wir anders? Wer macht was? Nichts analysieren mit erhobenem Zeigefinger — jede Ansage konkret an Positionen hängen („Außenbahn: ihr drückt hoch, wenn die 8 dazwischen schaltet“).'],
+  ['Rotation statt Stammelf','Ein schmaler Kader in einer langen Saison: Jeder Spieler mit Spielzeit bleibt fit und motiviert. Ein fester Kern plus 3–4 Rotationsspieler verhindert Ausfälle, die in der Rückrunde Titel kosten.'],
+  ['Erste Hilfe am Spielfeldrand','Kopfverletzung oder Bewusstlosigkeit: sofort 144 rufen, Spielerin liegen lassen. Muskel-/Bänder-Verdacht: PECH-Schema — Pause, Eis, Compression, Hochlagern. Kühlung, Wundpflaster, Rettungsdecke und Verbandstasche gehören immer in die Trainingstasche.'],
+  ['Fairplay zahlt auf die Saison ein','Fairnesspreis-Auszeichnungen in OÖ prämieren jedes Jahr 30+ Mannschaften sauberen Spiels. Der Schiedsrichter vergeigt bei Rüpel-Teams auch im Nacken — ruhige Mannschaften kriegen die knappen Entscheidungen.']
+];
+function renderTipps(){
+  const w = $('tipps-wrap');
+  w.innerHTML = '';
+  TIPPS.forEach(function(t){
+    const d = document.createElement('div');
+    d.className = 'titem';
+    const b = document.createElement('b');
+    b.textContent = t[0];
+    const p = document.createElement('p');
+    p.textContent = t[1];
+    d.appendChild(b); d.appendChild(p);
+    w.appendChild(d);
+  });
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+window.addEventListener('resize', function(){ syncCanvas(); });
+attachDraw();
+renderBlocks();
+renderEvents();
+paintScore();
+renderTipps();
+renderVerein();
+syncCanvas();
+const restored = restoreState();
+if (!restored){
+  setFormation('4-2-3-1', 'Grundordnung 4-2-3-1');
+  /* Init ohne Toast-Popup (setMode toastet normalerweise) */
+  mode = 'move';
+  $('m-move').classList.add('on');
+  $('m-arrow').classList.remove('on');
+  $('m-zone').classList.remove('on');
+}
+renderBlocks();
+</script>
+</body>
+</html>
